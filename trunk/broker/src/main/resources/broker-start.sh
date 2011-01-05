@@ -23,8 +23,8 @@ then
         done
 fi
 
-# VM Options : -XX:NewRatio=1 -XX:+PrintGCTimeStamps -XX:+PrintGCDetails
-script="java -XX:NewRatio=1 -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:HeapDumpPath=${BASE_LOG}/broker.hprof -XX:ErrorFile=${BASE_LOG}/crash.log -XX:+PrintCommandLineFlags -Xmx2048m -Xms2048m -XX:+HeapDumpOnOutOfMemoryError -Dtt.log.file=${BASE_LOG}/broker.log -Dlog4j.configuration=file:${BASE_CONF}/log4j.properties -classpath ${BASE_LIB}/*: com.taobao.timetunnel.bootstrap.BrokerBootstrap ${BASE_CONF}/conf.properties";
+# VM Options : -XX:NewRatio=1 -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:MaxTenuringThreshold=15
+script="java -XX:SurvivorRatio=5 -XX:-UseAdaptiveSizePolicy -XX:NewRatio=1 -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:HeapDumpPath=${BASE_LOG}/broker.hprof -XX:ErrorFile=${BASE_LOG}/crash.log -XX:+PrintCommandLineFlags -Xmx2048m -Xms2048m -XX:+HeapDumpOnOutOfMemoryError -Dtt.log.file=${BASE_LOG}/broker.log -Dlog4j.configuration=file:${BASE_CONF}/log4j.properties -classpath ${BASE_LIB}/*: com.taobao.timetunnel.bootstrap.BrokerBootstrap ${BASE_CONF}/conf.properties";
 echo $script
 nohup $script &
 pid=$!

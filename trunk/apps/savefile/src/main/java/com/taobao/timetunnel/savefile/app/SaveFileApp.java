@@ -8,6 +8,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.taobao.timetunnel.client.Message;
+import com.taobao.timetunnel.savefile.writer.CronJob;
 import com.taobao.timetunnel.savefile.writer.FileWriter;
 import com.taobao.timetunnel.util.filter.ContentFilter;
 import static com.taobao.timetunnel.client.TimeTunnel.*;
@@ -19,12 +20,14 @@ import static com.taobao.timetunnel.client.TimeTunnel.*;
  * 
  */
 public class SaveFileApp {
-	private List<StoppableService> writers;
+	private final List<StoppableService> writers;
 	public static Map<String, List<ContentFilter>> filters = new HashMap<String, List<ContentFilter>>();
 	private static final Logger log = Logger.getLogger(SaveFileApp.class);
+	private final CronJob cronJob;
 
 	public SaveFileApp() {
 		writers = new ArrayList<StoppableService>();
+		cronJob = new CronJob();
 	}
 
 	public void start() {
@@ -39,6 +42,7 @@ public class SaveFileApp {
 		Integer[] rcvSize = Conf.getInstance().getRcvSize();
 
 		String[] samplingRateStrs = Conf.getInstance().getSamplingrates();
+		cronJob.start();
 		for (int i = 0; i < topicStrs.length; i++) {
 			int samplingRate = Integer.valueOf(samplingRateStrs[i]);
 			FileWriter fileWriter = new FileWriter(topicStrs[i], timeout[i], rcvSize[i], new FileWriter.WriteCompletionHandler() {
@@ -88,6 +92,7 @@ public class SaveFileApp {
 		for (StoppableService fw : writers) {
 			fw.stop();
 		}
+		cronJob.stop();
 	}
 
 	public Runnable createShutdownHook() {

@@ -28,6 +28,7 @@ import com.taobao.timetunnel.InvalidCategoryException;
 import com.taobao.timetunnel.InvalidTokenException;
 import com.taobao.timetunnel.message.Category;
 import com.taobao.timetunnel.session.Attribute;
+import com.taobao.timetunnel.session.InvaildSession;
 import com.taobao.timetunnel.session.Session;
 import com.taobao.timetunnel.session.Type;
 import com.taobao.timetunnel.zookeeper.ZooKeeperConnector;
@@ -46,10 +47,7 @@ import com.taobao.util.SystemTime;
  */
 public class ZookeeperCenter implements Center, ZooKeeperListener {
 
-  public ZookeeperCenter(final String connectString,
-                         final int sessionTimeout,
-                         final int rebalancePeriod) {
-    this.rebalancePeriod = SECONDS.toMillis(rebalancePeriod);
+  public ZookeeperCenter(final String connectString, final int sessionTimeout) {
     connector = new ZooKeeperConnector(connectString, sessionTimeout, this);
     Events.scheduleAtFixedRate(new Runnable() {
 
@@ -151,14 +149,8 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
   }
 
   @Override
-  public Session session(final ByteBuffer token) {
-    try {
-      final InnerSession session = sessions.getOrCreateIfNotExist(token);
-      session.lastTickTime = SystemTime.current();
-      return session;
-    } catch (final Exception e) {
-      throw new InvalidTokenException(e);
-    }
+  public Session invalidSession(final ByteBuffer token) {
+    return new InvaildSession(token);
   }
 
   @Override
@@ -181,6 +173,7 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
 
   private synchronized void fireOnClusterChanged() {
     try {
+      sessions.rebalance();
       final List<String> children = connector.getChildren(currentGroup, true);
       watcher.onClusterChanged(children);
     } catch (final InterruptedException e) {
@@ -197,7 +190,6 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
 
   private static final Pattern CATEGORY_PATTERN = Pattern.compile(CATEGORIES
       + "/(\\w+)/subscribers");
-  private final long rebalancePeriod;
   private final ZooKeeperConnector connector;
   private final Categories categories = new Categories();
   private final Sessions sessions = new Sessions();
@@ -317,20 +309,22 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
       return attributes.get(attribute.name()).getAsInt();
     }
 
-    public void invalid(final boolean delete) {
+    public synchronized void invalid(final boolean delete) {
       try {
-        LOGGER.info("{} invalid {}.", this, (delete ? "positive" : "negative"));
+        if (invalid) return;
         invalid = true;
+        sessions.remove(id);
         for (final InvalidListener listener : listeners)
           listener.onInvalid();
         if (delete && connector.isConnected()) connector.delete(id, -1);
+        LOGGER.info("{} invalid {}.", this, (delete ? "positive" : "negative"));
       } catch (final Exception e) {
         throw new RuntimeException(e);
       }
     }
 
     @Override
-    public boolean isInvalid() {
+    public synchronized boolean isInvalid() {
       return invalid;
     }
 
@@ -376,7 +370,7 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
       return Type.valueOf(attributes.get("type").getAsString());
     }
 
-    private volatile boolean invalid;
+    private boolean invalid;
     private volatile long lastTickTime;
 
     private final long created;
@@ -384,6 +378,10 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
     private final JsonObject attributes;
     private final Collection<InvalidListener> listeners;
 
+  }
+
+  private interface InnerSessionFilter {
+    boolean filter(InnerSession session);
   }
 
   /**
@@ -402,25 +400,8 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
     }
 
     public void checkTimeoutAndExpired() {
-      LOGGER.debug("Start check session timeout or expired.");
-      for (final ByteBuffer token : map.keySet()) {
-        try {
-          final InnerSession session = map.get(token).get();
-          if (session.isInvalid()) {
-            remove(session.id());
-            continue;
-          }
-
-          final long timeout = SECONDS.toMillis(session.intValueOf(Attribute.timeout));
-          final long current = SystemTime.current();
-          if (isTimeout(session, timeout, current) || shouldRebalance(session, current))
-            session.invalid(true);
-
-        } catch (final Exception e) {
-          LOGGER.error("Missing token " + Bytes.toString(token), e);
-          map.remove(token);
-        }
-      }
+      LOGGER.debug("Start check session timeout.");
+      invalidSessions(timeout);
     }
 
     public void invalid(final String path) {
@@ -435,20 +416,60 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
       }
     }
 
+    public void rebalance() {
+      LOGGER.info("Start rebalance all sessions.");
+      invalidSessions(all);
+    }
+
     protected boolean isTimeout(final InnerSession session, final long timeout, final long current) {
       final boolean b = current > session.lastTickTime + timeout;
       if (b) LOGGER.info("Invalid {} because of timeout.", session);
       return b;
     }
 
-    protected boolean shouldRebalance(final InnerSession session, final long current) {
-      final boolean b = current > session.created + rebalancePeriod;
-      if (b) LOGGER.info("Invalid {} because of rebalance period.", session);
-      return b;
+    private void invalidSessions(final InnerSessionFilter filter) {
+      for (final ByteBuffer token : map.keySet()) {
+        try {
+          final InnerSession session = map.get(token).get();
+          if (filter.filter(session)) session.invalid(true);
+        } catch (final Exception e) {
+          LOGGER.error("Missing token " + Bytes.toString(token), e);
+          map.remove(token);
+        }
+      }
     }
 
     private void remove(final String id) {
       map.remove(Bytes.toBuffer(id));
+    }
+
+    final InnerSessionFilter all = new InnerSessionFilter() {
+
+      @Override
+      public boolean filter(final InnerSession session) {
+        return true;
+      }
+    };
+
+    final InnerSessionFilter timeout = new InnerSessionFilter() {
+
+      @Override
+      public boolean filter(final InnerSession session) {
+        final long timeout = SECONDS.toMillis(session.intValueOf(Attribute.timeout));
+        final long current = SystemTime.current();
+        return isTimeout(session, timeout, current);
+      }
+    };
+  }
+
+  @Override
+  public Session checkedSession(ByteBuffer token) {
+    try {
+      final InnerSession session = sessions.getOrCreateIfNotExist(token);
+      session.lastTickTime = SystemTime.current();
+      return session;
+    } catch (final Exception e) {
+      throw new InvalidTokenException(e);
     }
   }
 

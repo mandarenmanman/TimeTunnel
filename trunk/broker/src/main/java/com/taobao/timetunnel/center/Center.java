@@ -43,7 +43,13 @@ public interface Center {
    * @param token
    * @return {@link Session} of client.
    */
-  Session session(ByteBuffer token);
+  Session invalidSession(ByteBuffer token);
+
+  /**
+   * @param token
+   * @return {@link Session} of client.
+   */
+  Session checkedSession(ByteBuffer token);
 
   /**
    * Unregister broker.

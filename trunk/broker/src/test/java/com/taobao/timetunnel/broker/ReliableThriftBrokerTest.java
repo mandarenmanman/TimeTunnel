@@ -55,7 +55,7 @@ public class ReliableThriftBrokerTest implements ZooKeeperListener {
   public void shouldGetRightMessage() throws Exception {
     final int times = 10;
 
-    final ZookeeperCenter center = new ZookeeperCenter(host + ":8888", 2000, 60);
+    final ZookeeperCenter center = new ZookeeperCenter(host + ":8888", 2000);
     final ThriftBroker<ByteBuffer> thriftBroker =
       new ReliableThriftBroker(center,
                                host,
@@ -76,11 +76,9 @@ public class ReliableThriftBrokerTest implements ZooKeeperListener {
     final ClientFactory clientFactory = TestClient.clientFactory(host, external);
     final BufferFinance finance = TestClient.finance(1, times);
     TestClient.parallelPubsAndSubs(clientFactory,
-                                   "/clients/pub",
-                                   "/clients/sub",
+                                   "/clients/pub[0-3]",
+                                   "/clients/sub[0-2]",
                                    category,
-                                   3,
-                                   2,
                                    noneTestRuntimeReport(),
                                    noneTestRuntimeReport(),
                                    finance);
@@ -90,8 +88,9 @@ public class ReliableThriftBrokerTest implements ZooKeeperListener {
 
   @Test
   public void shouldGetRightMessageEvenIfBrokerCrashInCluster() throws Exception {
-    final ZookeeperCenter center0 = new ZookeeperCenter("localhost:8888", 2000, 60);
-    final ZookeeperCenter center1 = new ZookeeperCenter("localhost:8888", 2000, 60);
+    final ZookeeperCenter center0 = new ZookeeperCenter("localhost:8888", 2000);
+    final ZookeeperCenter center1 = new ZookeeperCenter("localhost:8888", 2000);
+    final ZookeeperCenter center2 = new ZookeeperCenter("localhost:8888", 2000);
 
     final ThriftBroker<ByteBuffer> thriftBroker0 =
       new ReliableThriftBroker(center0,
@@ -118,13 +117,33 @@ public class ReliableThriftBrokerTest implements ZooKeeperListener {
                                chunkBuffer,
                                monitor,
                                freezer("freezers1"));
+
+    final ThriftBroker<ByteBuffer> thriftBroker2 =
+      new ReliableThriftBroker(center2,
+                               "localhost",
+                               9902,
+                               9912,
+                               group,
+                               syncPoint,
+                               maxMessageSize,
+                               chunkCapacity,
+                               chunkBuffer,
+                               monitor,
+                               freezer("freezers2"));
     start(thriftBroker0);
 
     Thread.sleep(1000L); // wait for broker0 register
+    System.out.println("========================================0");
 
     start(thriftBroker1);
 
     Thread.sleep(1000L); // wait clients initializaion in center.
+    System.out.println("========================================1");
+
+    start(thriftBroker2);
+
+    Thread.sleep(1000L); // wait clients initializaion in center.
+    System.out.println("========================================2");
 
     final int times = 10;
     final String host = "localhost";
@@ -135,15 +154,18 @@ public class ReliableThriftBrokerTest implements ZooKeeperListener {
 
     TestClient.retry(1);
 
-    parallelPubs(factory0, "/clients/pub", category, 3, noneTestRuntimeReport(), finance);
+    parallelPubs(factory0, "/clients/pub[0-3]", category, noneTestRuntimeReport(), finance);
 
     Thread.sleep(1000L); // wait clients initializaion in center.
 
     thriftBroker0.stop();
 
-    parallelSubs(factory1, "/clients/sub", category, 2, noneTestRuntimeReport(), finance);
+    Thread.sleep(1000L); // wait rebalance.
+
+    parallelSubs(factory1, "/clients/sub[0-2]", category, noneTestRuntimeReport(), finance);
 
     thriftBroker1.stop();
+    thriftBroker2.stop();
 
   }
 

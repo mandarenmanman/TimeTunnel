@@ -26,20 +26,22 @@ public class ClientUtils {
     client.getOutputProtocol().getTransport().close();
   }
 
-  public static final <T extends TServiceClient> T newClient(TServiceClientFactory<T> factory,
-                                                             final String host,
-                                                             final int port) throws TTransportException {
-    final TTransport transport = new TFramedTransport(new TSocket(host, port));
+  public static final <T extends TServiceClient> T newClient(final TServiceClientFactory<T> factory,
+                                                             final InetSocketAddress address) throws TTransportException,
+                                                                                             IOException {
+    final TTransport transport =
+      new TFramedTransport(new TSocket(address.getHostName(), address.getPort(),CLIENT_TIMEOUT));
     transport.open();
     return factory.getClient(new TBinaryProtocol(transport));
   }
 
-  public static final <T extends TServiceClient> T newClient(TServiceClientFactory<T> factory,
-                                                             final InetSocketAddress address) throws TTransportException,
-                                                                                             IOException {
-    final TTransport transport =
-      new TFramedTransport(new TSocket(address.getHostName(), address.getPort()));
+  public static final <T extends TServiceClient> T newClient(final TServiceClientFactory<T> factory,
+                                                             final String host,
+                                                             final int port) throws TTransportException {
+    final TTransport transport = new TFramedTransport(new TSocket(host, port, CLIENT_TIMEOUT));
     transport.open();
     return factory.getClient(new TBinaryProtocol(transport));
   }
+
+  private static final int CLIENT_TIMEOUT = 2000;
 }

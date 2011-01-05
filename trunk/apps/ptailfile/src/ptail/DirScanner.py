@@ -9,8 +9,11 @@ import logging
 import os
 import re
 import time
+from ptail import Config
 
 logger = logging.getLogger("tailfile.dirscanner")
+basepath = os.path.dirname(__file__)
+conf = Config.Config(basepath + '/../../conf/tailfile.conf')
 
 def on_error(oserror):
     logger.error("error during scan: " + str(oserror.filename))
@@ -22,7 +25,6 @@ class DirScanner(object):
         self.modify_time = modify_time
         self.path_regx = self.__split_regx(regx)
         logger.debug("path regx: " + str(self.path_regx))
-        print "path regx: " + str(self.path_regx)
         self.q = q
         self.tmp = tmp
         self.toDel = []
@@ -45,19 +47,25 @@ class DirScanner(object):
     def __intern_scan(self):
         res = []
         max_depth = len(self.path_regx)
-        depth = 0
-        logger.debug("last modify time: " + str(self.modify_time))
+        depth = -1
+        logger.debug("scan dir and last modify time: " + str(self.modify_time))
         if os.path.exists(self.root) == False:
             return
+        parent_dir=None
+        #width first scan
         for path, subpaths, files in os.walk(self.root, True, on_error, False):
-            print path, subpaths, files
+            normpath = os.path.normpath(path)
+            inner_parent_dir=os.path.dirname(normpath) 
+            if inner_parent_dir!=parent_dir:
+                depth += 1
+                parent_dir=inner_parent_dir
+            
             if depth >= max_depth:
-                    logger.info("search at most: " + str(max_depth))
+                    logger.info("search to the most depth: " + str(max_depth))
                     break
             regx = self.path_regx[depth]
-            depth += 1
             
-            if depth < max_depth:
+            if depth < max_depth-1:
                 to_remove = []
                 for subp in subpaths:
                     if regx.match(subp) is None:
@@ -66,7 +74,7 @@ class DirScanner(object):
                         continue
                     mtime = os.path.getmtime(os.path.join(path, subp))
                     #change <= to <
-                    if depth==max_depth-1 and mtime < self.modify_time:
+                    if depth==max_depth-2 and mtime < self.modify_time:
                         logger.debug("remove dir" + str(subp) + " due to not newer than " + str(mtime))
                         to_remove.append(subp)
                 for i in to_remove:
@@ -91,7 +99,7 @@ class DirScanner(object):
             except ValueError:
                 try:
                     self.toDel.index(file_res)
-                    logger.debug("file: " + file_res + " has been exist in to delete q")
+                    logger.debug("file: " + file_res + " has been exist in todelete q")
                 except ValueError:
                     if len(self.his_files) == 0:    
                         logger.debug("file: " + file_res + " has been added")
@@ -136,13 +144,19 @@ class DirScanner(object):
         return
         
 if __name__ == '__main__':
-    dir_scanner = DirScanner("D:\\workspace\\ptailfile\\test", "null", 0, "d2/\d/t1\\\\.*", ["1", "2", 'D:\\workspace\\ptailfile\\test\\d2\\d2f.txt'], "null")
+#    dir_scanner = DirScanner("D:\\workspace\\ptailfile\\test", "null", 0, "d2/\d/t1\\\\.*", ["1", "2", 'D:\\workspace\\ptailfile\\test\\d2\\d2f.txt'], "null")
+    _path_regx = conf.get_path_regx()
+    _base_path = conf.get_base_path()
+    print _path_regx
+    print _base_path
+    dir_scanner = DirScanner(_base_path, "null", 0, _path_regx, ["1", "2", 'D:\\workspace\\ptailfile\\test\\d2\\d2f.txt'], "null")
 #    print os.path.getmtime('D:\\workspace\\ptailfile\\test\\d2\\b.txt')
 #    print os.path.getmtime('D:\\workspace\\ptailfile\\test\\d2')
     
     while True:
         dir_scanner.scan(True)
         print dir_scanner.q
+        
         time.sleep(10)
     
     

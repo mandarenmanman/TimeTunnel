@@ -11,7 +11,7 @@ import com.taobao.timetunnel.client.util.ClosedException;
  * 
  */
 public class SimpleOfferExample {
-	public static void main() {
+	public static void main(String[] args) {
 		//the content to send
 		String msg = "hello timetunnel, i am from a async offer";
 		// use authenticate

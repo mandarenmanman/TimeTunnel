@@ -121,9 +121,9 @@ public final class EfficientThriftBroker extends ThriftBroker<ByteBuffer> {
     public List<ByteBuffer> ackAndGet(final String category, final ByteBuffer token) throws Failure,
                                                                                     TException {
       try {
-        final List<ByteBuffer> gets = tunnels.tunnel(category(category)).ackAndGet(session(token));
+        final List<ByteBuffer> gets = tunnels.tunnel(category(category)).ackAndGet(checkedSession(token));
         LOGGER.debug("AckAndGet {} message of {} from {}", new Object[] { gets.size(),
-          category(category), session(token) });
+          category(category), checkedSession(token) });
         return gets;
       } catch (final RuntimeException e) {
         LOGGER.error("Broker ackAndGet failed.", e);
@@ -138,8 +138,8 @@ public final class EfficientThriftBroker extends ThriftBroker<ByteBuffer> {
         if (message.remaining() > maxMessageSize)
           throw new TooBigMessageException(message.remaining() + " > " + maxMessageSize);
 
-        tunnels.tunnel(category(category)).post(session(token), message);
-        LOGGER.debug("Post a message of {} from {}", category(category), session(token));
+        tunnels.tunnel(category(category)).post(checkedSession(token), message);
+        LOGGER.debug("Post a message of {} from {}", category(category), checkedSession(token));
       } catch (final RuntimeException e) {
         LOGGER.error("Broker post failed.", e);
         throw failure(e);

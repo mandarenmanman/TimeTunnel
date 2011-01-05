@@ -70,7 +70,10 @@ public class PubTunnel {
 	}
 
 	public void post(Message message) throws ClosedException {
-		this.post(ByteBuffer.wrap(message.serialize()));
+		byte[] bytes = message.serialize();
+		if (bytes.length == 0)
+			return;
+		this.post(ByteBuffer.wrap(bytes));
 	}
 
 	public synchronized void post(ByteBuffer bf) throws ClosedException {

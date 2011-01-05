@@ -66,13 +66,12 @@ public abstract class StoppableService implements Runnable {
 	public void stop() {
 		log.info("stop pending...");
 		stopRequested.set(true);
+		shutdown();
 		try {
 			stoppedSignal.await(STOP_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
-		log.info("shutdown...");
-		shutdown();
 		log.info("finish stopping...");
 	}
 

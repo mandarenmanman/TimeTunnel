@@ -59,7 +59,7 @@ class Message:
             self.message.props[map_key["COMPRESSD"]] = map_v["NO"]
             
     def __setCompressAlgo(self, algo):
-        self.message.props[map_key["COMPRESSDALGO"]] = algo
+        self.message.props[map_key["COMPRESSALGO"]] = algo
     
     def decompress(self):
         if self.isCompress() is False:

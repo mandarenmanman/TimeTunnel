@@ -87,9 +87,9 @@ class Config:
         return self.routerUrls[i]
     
     def setRouters(self, urls):
-        if len(self.routerUrls) > 0:
-            return
-        
+#        if len(self.routerUrls) > 0:
+#            return
+        self.routerUrls=[]
         for url in urls.split(";"):
             url = url.strip()
             if url is None or url is "":

@@ -31,9 +31,9 @@ public final class PropertiesHelper {
   }
 
   public <V> V get(final Converter<V> converter, final String key) {
-    final String value = properties.getProperty(key).trim();
+    final String value = properties.getProperty(key);
     if (value == null) throw new IllegalArgumentException(key + " is missing.");
-    return converter.convert(value);
+    return converter.convert(value.trim());
   }
 
   public <V> V get(final Converter<V> converter, final String key, final String defaultValue) {
@@ -42,9 +42,9 @@ public final class PropertiesHelper {
   }
 
   public boolean getBoolean(final String key) {
-    final String value = properties.getProperty(key).trim();
+    final String value = properties.getProperty(key);
     if (value == null) throw new IllegalArgumentException(key + " is missing.");
-    return parseBoolean(value);
+    return parseBoolean(value.trim());
   }
 
   public boolean getBoolean(final String key, final boolean defaultValue) {
@@ -53,9 +53,9 @@ public final class PropertiesHelper {
   }
 
   public int getInt(final String key) {
-    final String value = properties.getProperty(key).trim();
+    final String value = properties.getProperty(key);
     if (value == null) throw new IllegalArgumentException(key + " is missing.");
-    return parseInt(value);
+    return parseInt(value.trim());
   }
 
   public int getInt(final String key, final int defaultValue) {
@@ -64,10 +64,10 @@ public final class PropertiesHelper {
   }
 
   public String getString(final String key) {
-    final String value = properties.getProperty(key).trim();
+    final String value = properties.getProperty(key);
     if (value == null || value.length() == 0)
       throw new IllegalArgumentException(key + " is missing.");
-    return value;
+    return value.trim();
   }
 
   public String getString(final String key, final String defaultValue) {

@@ -43,7 +43,7 @@ public class Config {
 	private void rpcTimeOutConfig() {
 		String rpcTimeOutStr = System.getProperty("RPCTIMEOUT");
 		if (rpcTimeOutStr == null || "".equals(rpcTimeOutStr)) {
-			rpcTimeOut = 10000;
+			rpcTimeOut = 20000;
 		} else {
 			rpcTimeOut = Integer.parseInt(rpcTimeOutStr);
 		}

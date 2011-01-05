@@ -127,7 +127,12 @@ public class VirtualSubConnection {
 			newSG = null;
 		}
 		if (newSG == null || newSG.getServeUnits() == null || newSG.getToken() == null || newSG.getServeUnits().size() == 0) {
-			log.error("get Url failed, use older one is has");
+			String printStr = null;
+			if (sg == null)
+				printStr = "null";
+			else
+				printStr = sg.toString();
+			log.error("get Url failed, use older one: " + printStr);
 		} else {
 			sg = newSG;
 		}

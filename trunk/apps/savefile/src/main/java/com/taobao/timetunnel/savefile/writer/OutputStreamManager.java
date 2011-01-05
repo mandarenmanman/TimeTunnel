@@ -8,7 +8,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 
 import com.taobao.timetunnel.savefile.app.Conf;
@@ -61,7 +60,7 @@ public class OutputStreamManager {
 		if (Conf.getInstance().getfilePathCompatible())
 			setFilenameGenerator(new OutputStreamNameGenerator() {
 				public String generateFileName(String baseDir, String tag) {
-					String ts = DateUtil.getTimeStampInMin('-', null);
+					String ts = DateUtil.getTimeStampInSec('-', null);
 					ts = ts.replaceFirst("-", "");
 					ts = ts.replaceFirst("-", "");
 					return baseDir + "/" + tag + "/" + tag + "-" + ts + ".tmp";
@@ -76,9 +75,9 @@ public class OutputStreamManager {
 				OutputStreamStruct outputStream = outputStreamMap.get(tag);
 				if (outputStream != null && outputStream.stream != null) {
 					if (outputStream.bytesWritten == 0) {
-						IOUtils.write(new byte[1], outputStream.stream);
-					}
-					closeOutputStream(outputStream);
+						deleteOutputStream(outputStream);
+					} else
+						closeOutputStream(outputStream);
 				}
 				outputStream = newOutputStream(tag);
 				outputStreamMap.put(tag, outputStream);
@@ -94,9 +93,9 @@ public class OutputStreamManager {
 			for (String tag : outputStreamMap.keySet()) {
 				OutputStreamStruct outputStream = outputStreamMap.get(tag);
 				if (outputStream != null && outputStream.stream != null) {
-					if (outputStream.bytesWritten == 0) {
+					if (outputStream.bytesWritten == 0)
 						deleteOutputStream(outputStream);
-					} else
+					else
 						closeOutputStream(outputStream);
 				}
 			}
@@ -118,6 +117,7 @@ public class OutputStreamManager {
 		OutputStreamStruct outputStream = new OutputStreamStruct();
 		FileUtil.ensurePathExists(baseDir + "/" + tag);
 		outputStream.filePath = filenameGenerator.generateFileName(baseDir, tag);
+		log.debug("create new file: " + outputStream.filePath);
 		outputStream.stream = new FileOutputStream(outputStream.filePath, true);
 		outputStream.bytesWritten = 0;
 		outputStream.messagesWritten = 0;

@@ -16,7 +16,7 @@ logger = logging.getLogger("tt2-client.Connection")
 class Connection(object):
     def __init__(self, auth, t, destination, conf):
         self.auth = auth
-        self.conf=conf
+        self.conf = conf
         self.t = t
         self.destination = destination
         self.dest = None
@@ -32,6 +32,8 @@ class Connection(object):
             d = None
             try:
                 d = self.destination.getDest(qi)
+                if d is None:
+                    raise Exception("can not get broker url")
                 return d
             except:
                 logger.error(str(traceback.format_exc()))
@@ -40,7 +42,7 @@ class Connection(object):
                     return self.dest
                 else:
                     logger.error("due to can not get broker from router, loop here")
-                    time.sleep(3)
+                    time.sleep(2)
                     continue
         pass
                 
@@ -60,9 +62,8 @@ class Connection(object):
                 else:
                     self.dest = self.__getUrl()
                     if self.dest is None:
-                        self.valid = False
-                        time.sleep(3)
-                        continue
+                        logger.error("can not get url for broker and closed has been called, exit")
+                        break
                     self.client = PerSessionClient(self.dest.brokerserver, self.dest.sessionId, self.t.name, self.conf)
                     try:
                         self.client.publish(m)

@@ -113,8 +113,12 @@ public abstract class ThriftBroker<T> implements Server {
     id = center.register(info(), group, watcher());
   }
 
-  protected final Session session(final ByteBuffer token) {
-    return center.session(token);
+  protected final Session invalidSession(ByteBuffer token) {
+    return center.invalidSession(token);
+  }
+
+  protected final Session checkedSession(ByteBuffer token) {
+    return center.checkedSession(token);
   }
 
   private short code(final Throwable t) {

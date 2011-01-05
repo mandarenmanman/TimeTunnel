@@ -327,20 +327,20 @@ public class FileChannelQueueImpl implements FileChannelQueue {
 
 	@Override
 	public void add(Message m) {
-		long begin = System.nanoTime();
+//		long begin = System.nanoTime();
 		addLock.lock();
 		try {
-			long b1 = System.nanoTime();
+//			long b1 = System.nanoTime();
 			checkWriteChannel();
-			log.info("get wirte channel elipse: " + (System.nanoTime() - b1));
-			b1 = System.nanoTime();
+//			log.info("get wirte channel elipse: " + (System.nanoTime() - b1));
+//			b1 = System.nanoTime();
 			write(m);
-			log.info("wirte to channel elipse: " + (System.nanoTime() - b1));
+//			log.info("wirte to channel elipse: " + (System.nanoTime() - b1));
 		} finally {
 			addLock.unlock();
 		}
 		latch.countDown();
-		log.info("add to q elipse: " + (System.nanoTime() - begin));
+//		log.info("add to q elipse: " + (System.nanoTime() - begin));
 	}
 
 	@Override
@@ -368,6 +368,7 @@ public class FileChannelQueueImpl implements FileChannelQueue {
 	private void write(Message m) {
 		try {
 			byte[] c = m.serialize();
+			if(c.length==0) return;
 			writeLenBuffer.putInt(c.length);
 			writeLenBuffer.flip();
 			ByteBuffer content = preAllocate.allocate(4 + c.length);

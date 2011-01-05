@@ -51,7 +51,7 @@ public class FeedTest extends InjectMocksSupport {
   @SuppressWarnings("unchecked")
   public void parallelOnePostAndTwoGet() throws Exception {
     Race.run(new Post(), new Get("dw"), new Get("ad"));
-    assertThat(feed.size(), is(0));
+    assertThat(feed.isEmpty(), is(true));
   }
 
   @Before
@@ -83,7 +83,7 @@ public class FeedTest extends InjectMocksSupport {
 
   private final Feed<ByteBuffer> feed = new ConcurrentFeed<ByteBuffer>("log");
 
-  private static final int TIMES = 1000;
+  private static final int TIMES = 10;
 
   /**
    * @{link Get}

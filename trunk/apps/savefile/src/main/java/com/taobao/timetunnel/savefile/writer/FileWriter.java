@@ -162,7 +162,7 @@ public class FileWriter extends StoppableService {
 	}
 
 	public void shutdown() {
-		log.info("FileWriter clear queue");
+		log.info("shutdown receive future");
 		rcvFuture.cancel();
 	}
 }

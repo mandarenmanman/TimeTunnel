@@ -83,7 +83,13 @@ public class SubscribeFutureImpl implements SubscribeFuture {
 	private List<Message> covertByteBuffer2Message(List<ByteBuffer> ackAndGet) {
 		List<Message> ret = new ArrayList<Message>();
 		for (Iterator<ByteBuffer> it = ackAndGet.iterator(); it.hasNext();) {
-			Message m = MessageFactory.getInstance().createMessageFrom(BytesUtil.toBytes(it.next()));
+			Message m = null;
+			try {
+				m = MessageFactory.getInstance().createMessageFrom(BytesUtil.toBytes(it.next()));
+			} catch (Exception e) {
+				//skip this error
+				continue;
+			}
 			if (this.t.isCompress())
 				m.compress();
 			else

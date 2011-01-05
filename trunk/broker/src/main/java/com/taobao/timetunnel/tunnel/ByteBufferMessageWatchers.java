@@ -157,7 +157,7 @@ final class ByteBufferMessageWatchers implements Disposable {
         public ByteBuffer get(final int index) {
           final Message<ByteBuffer> message = sendings.get(index);
           try {
-            ByteBuffer content = message.content();
+            final ByteBuffer content = message.content();
             return content;
           } catch (final Exception e) {
             /* message disposed or expired. */

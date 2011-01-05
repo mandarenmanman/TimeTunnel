@@ -99,6 +99,7 @@ public class Client {
 		try {
 			if (transport == null)
 				connect();
+//			log.debug("ack and get called");
 			return client.ackAndGet(category, token);
 		} catch (Failure e) {
 			cleanup();

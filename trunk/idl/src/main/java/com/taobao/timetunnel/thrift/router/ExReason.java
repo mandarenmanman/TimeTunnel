@@ -5,35 +5,30 @@
  */
 package com.taobao.timetunnel.thrift.router;
 
-
-import java.util.Map;
-import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
 public enum ExReason implements TEnum {
-  SERVICE_UNAVAILABLE(100),
-  INVALID_USERORPWD(200),
-  NOTFOUND_BROKERURL(201),
-  UNAUTHORIZED_CATEGORY(202);
+  SERVICE_UNAVAILABLE(100), INVALID_USERORPWD(200), NOTFOUND_BROKERURL(201), UNAUTHORIZED_CATEGORY(
+      202);
 
-  private final int value;
-
-  private ExReason(int value) {
+  private ExReason(final int value) {
     this.value = value;
   }
 
   /**
    * Get the integer value of this enum value, as defined in the Thrift IDL.
    */
+  @Override
   public int getValue() {
     return value;
   }
 
   /**
    * Find a the enum type by its integer value, as defined in the Thrift IDL.
+   * 
    * @return null if the value is not found.
    */
-  public static ExReason findByValue(int value) { 
+  public static ExReason findByValue(final int value) {
     switch (value) {
       case 100:
         return SERVICE_UNAVAILABLE;
@@ -47,4 +42,6 @@ public enum ExReason implements TEnum {
         return null;
     }
   }
+
+  private final int value;
 }

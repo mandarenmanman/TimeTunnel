@@ -39,6 +39,7 @@ public class CronJob {
 
 		public void execute(JobExecutionContext context) throws JobExecutionException {
 			log.error("Flush output streams");
+			System.out.println("current time: "+System.currentTimeMillis());
 			try {
 				outputStreamManager.switchAllOutputStreams();
 			} catch (IOException e) {

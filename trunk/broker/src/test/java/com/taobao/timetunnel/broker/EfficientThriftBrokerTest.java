@@ -37,11 +37,9 @@ public class EfficientThriftBrokerTest extends InjectMocksSupport {
     final BufferFinance finance = TestClient.finance(1, TIMES);
 
     TestClient.parallelPubsAndSubs(factory,
-                                   "/clients/pub",
-                                   "/clients/sub",
+                                   "/clients/pub[0-1]",
+                                   "/clients/sub[0-1]",
                                    category,
-                                   1,
-                                   1,
                                    noneTestRuntimeReport(),
                                    noneTestRuntimeReport(),
                                    finance);
@@ -50,7 +48,7 @@ public class EfficientThriftBrokerTest extends InjectMocksSupport {
 
   @Before
   public void setUp() throws Exception {
-    final ZookeeperCenter center = new ZookeeperCenter(host + ":8881", 2000, 60);
+    final ZookeeperCenter center = new ZookeeperCenter(host + ":8881", 2000);
 
     server =
       new EfficientThriftBroker(center,

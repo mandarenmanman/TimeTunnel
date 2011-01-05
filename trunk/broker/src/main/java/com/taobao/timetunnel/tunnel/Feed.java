@@ -13,9 +13,9 @@ import com.taobao.timetunnel.message.Message;
 interface Feed<Content> extends Disposable, Dumpable<Content> {
   Cursor<Message<Content>> cursorOf(Object key);
 
-  void post(Message<Content> message);
+  boolean isEmpty();
 
-  int size();
+  void post(Message<Content> message);
 
   int trim();
 }

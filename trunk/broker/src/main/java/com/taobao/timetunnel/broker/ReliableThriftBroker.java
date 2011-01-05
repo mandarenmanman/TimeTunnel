@@ -283,9 +283,10 @@ public final class ReliableThriftBroker extends ThriftBroker<ByteBuffer> impleme
     public List<ByteBuffer> ackAndGet(final String category, final ByteBuffer token) throws Failure,
                                                                                     TException {
       try {
-        final List<ByteBuffer> gets = tunnels.tunnel(category(category)).ackAndGet(session(token));
+        final Session session = checkedSession(token);
+        final List<ByteBuffer> gets = tunnels.tunnel(category(category)).ackAndGet(session);
         LOGGER.debug("AckAndGet {} message of {} from {}", new Object[] { gets.size(),
-          category(category), session(token) });
+          category(category), session });
         return gets;
       } catch (final RuntimeException e) {
         LOGGER.error("Broker ackAndGet failed.", e);
@@ -300,9 +301,10 @@ public final class ReliableThriftBroker extends ThriftBroker<ByteBuffer> impleme
         if (message.remaining() > maxMessageSize)
           throw new TooBigMessageException(message.remaining() + " > " + maxMessageSize);
 
-        reliableService.get().copy(category(category), session(token), message);
-        tunnels.tunnel(category(category)).post(session(token), message);
-        LOGGER.debug("Post a message of {} from {}", category(category), session(token));
+        final Session session = checkedSession(token);
+        reliableService.get().copy(category(category), session, message);
+        tunnels.tunnel(category(category)).post(session, message);
+        LOGGER.debug("Post a message of {} from {}", category(category), session);
       } catch (final RuntimeException e) {
         LOGGER.error("Broker post failed.", e);
         throw failure(e);
@@ -337,8 +339,9 @@ public final class ReliableThriftBroker extends ThriftBroker<ByteBuffer> impleme
     public void copy(final String category, final ByteBuffer token, final ByteBuffer message) throws Failure,
                                                                                              TException {
       try {
-        reliables.reliable(category(category)).copy(session(token), message);
-        LOGGER.debug("Copy a message of {} from {}", category(category), session(token));
+        final Session session = invalidSession(token);
+        reliables.reliable(category(category)).copy(session, message);
+        LOGGER.debug("Copy a message of {} from {}", category(category), session);
       } catch (final RuntimeException e) {
         LOGGER.error("Broker copy failed.", e);
         throw failure(e);
@@ -349,8 +352,9 @@ public final class ReliableThriftBroker extends ThriftBroker<ByteBuffer> impleme
     public void dump(final String category, final ByteBuffer token, final ByteBuffer message) throws Failure,
                                                                                              TException {
       try {
-        reliables.reliable(category(category)).dump(session(token), message);
-        LOGGER.debug("Dump a message of {} from {}", category(category), session(token));
+        final Session session = invalidSession(token);
+        reliables.reliable(category(category)).dump(session, message);
+        LOGGER.debug("Dump a message of {} from {}", category(category), session);
       } catch (final RuntimeException e) {
         LOGGER.error("Broker dump failed.", e);
         throw failure(e);
@@ -361,9 +365,9 @@ public final class ReliableThriftBroker extends ThriftBroker<ByteBuffer> impleme
     public void trim(final String category, final ByteBuffer token, final int size) throws Failure,
                                                                                    TException {
       try {
-        reliables.reliable(category(category)).trim(session(token), size);
+        reliables.reliable(category(category)).trim(invalidSession(token), size);
         LOGGER.debug("Trim {} message of {} from {}", new Object[] { size, category(category),
-          session(token) });
+          invalidSession(token) });
       } catch (final RuntimeException e) {
         LOGGER.error("Broker trim failed.", e);
         throw failure(e);
