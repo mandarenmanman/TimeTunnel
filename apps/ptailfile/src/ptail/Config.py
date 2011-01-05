@@ -48,6 +48,7 @@ class Config:
         self.__init_topic_compress()
         self.__init_topic_timeout()
         self.__init_sequence()
+        self.__init_timeout()
         
     def __getSection(self):
         self.ret = []
@@ -131,6 +132,18 @@ class Config:
     def get_routers(self):
         return self.router
     
+    def __init_timeout(self):
+        value = self.config.get('timetunnel', 'timeout')
+        if value is None or value is "":
+            logger.error("no timeout defined in conf use 10s")
+            self.timeout = 10
+            return
+        import string
+        self.timeout = string.atoi(value)
+    
+    def get_timeout(self):
+        return self.timeout
+
     def __init_topic_timeout(self):
         timeout = []
         for name in self.ret:
@@ -182,7 +195,7 @@ class Config:
         return self.checkpointstr
    
     def __init_log_base_path(self):
-        base_path=[]
+        base_path = []
         for name in self.ret:
             value = self.config.get(name, 'log_base_path')
             if value is None or value is "":

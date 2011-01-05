@@ -85,7 +85,6 @@ class Meta(object):
         self.rec.start()
     
     def write_disk(self):
-        print "sync to disk"
         if self.meta is not None:
             last_index = self.index
             self.index += 1
@@ -93,7 +92,7 @@ class Meta(object):
             try:
                 f = open(name, "w")
                 f.write(self.meta.content())
-                logger.debug("write meta to disk: " + str(self.meta.content()))
+#                logger.debug("write meta to disk: " + str(self.meta.content()))
             except Exception, e:
                 logger.error(e)
                 raise e
@@ -127,19 +126,17 @@ class Meta(object):
         next_higest_index = -1L
         
         for f in files:
-            print "restore meta file: "+str(f)
+            logger.debug("restore meta file: "+str(f))
             if f.startswith(self.name) is False:
                 continue
             rp = f.rpartition(SEP)
             if len(rp) == 0:
                 logger.error("error filename format: " + f)
-                print "error filename format: " + f
                 continue
             try:
                 num = atol(rp[len(rp) - 1])
             except:
                 logger.error("error filename format: " + f)
-                print "error filename format: " + f
                 continue
             if num > highest_index:
                 full_path = self.__bulidname(next_higest_index)
@@ -157,7 +154,6 @@ class Meta(object):
     def __load_from_file(self, next_higest_index):
         if self.index == -1L:
             logger.info("no meta found")
-            print "no meta found"
             return MetaInfo()
         meta_name = self.__bulidname(self.index)
         next_meta_name = self.__bulidname(next_higest_index)

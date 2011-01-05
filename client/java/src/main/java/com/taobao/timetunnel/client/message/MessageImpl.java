@@ -1,6 +1,7 @@
 package com.taobao.timetunnel.client.message;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.*;
 
 import org.apache.log4j.Logger;
@@ -60,6 +61,8 @@ public class MessageImpl implements Message {
 		try {
 			deserializer.deserialize(this.message, bytes);
 		} catch (TException e) {
+			log.error("Fail to deserialize message using thrift: ", e);
+			log.error("error content: " + new String(bytes, Charset.forName("utf-8")));
 			throw new RuntimeException("Fail to deserialize message using thrift", e);
 		}
 	}
@@ -68,7 +71,9 @@ public class MessageImpl implements Message {
 		try {
 			return serializer.serialize(this.message);
 		} catch (TException e) {
-			throw new RuntimeException("Fail to deserialize message using thrift", e);
+			log.error("Fail to serialize message using thrift: ", e);
+			log.error("cotent: " + new String(this.message.getContent(), Charset.forName("utf-8")));
+			return new byte[0];
 		}
 	}
 

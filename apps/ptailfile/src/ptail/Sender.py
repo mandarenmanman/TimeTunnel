@@ -56,25 +56,25 @@ class TTSender(object):
         cmpz = False
         if compress.lower() == "true":
             cmpz = True
-        sequence=False
-        if seq.lower() =="true":
-            sequence=True
+        sequence = False
+        if seq.lower() == "true":
+            sequence = True
         self.tunnel = tunnel(topic, cmpz, timeout, sequence)
         
     
     def send(self, content, len, filename=None):
         c = get_to_send(content, len, self.max_buf_len, self.encoding)
         if c.c is not None:
-            while True:
-                try:
-                    props = {"SOURCE":filename}
-                    post(self.tunnel, c.c, props)
-                    break
-                except Exception, e:
-                    logger.error("post to TT failed and retry: ")
-                    logger.error(str(e))
-                    logger.error(traceback.format_exc())
-                    continue
+            try:
+                props = {"SOURCE":filename}
+                if post(self.tunnel, c.c, props) is False:
+                    return 0
+            except Exception, e:
+                logger.error("post to TT failed and unexcepted error, exit: ")
+                logger.error(str(e))
+                logger.error(traceback.format_exc())
+                import sys
+                sys.exit(-1)
         return c.len
     
     def close(self):
@@ -103,7 +103,8 @@ class DiskSender(object):
         if c.c is not None:  
             f.write(c.c)
             f.flush()
-            logger.debug("content: "+str(c.c)+" has been written")
+            self.len+=c.len
+            logger.debug("content: " + str(c.c) + " has been written")
         return c.len
     
     def __get_write_file(self):
@@ -113,6 +114,7 @@ class DiskSender(object):
             if self.len > self.max_size:
                 self.w_f.close()
                 self.w_f = open(self.__create_file_name(), "wb")
+                self.len=0
         return self.w_f
     
     def __create_file_name(self):

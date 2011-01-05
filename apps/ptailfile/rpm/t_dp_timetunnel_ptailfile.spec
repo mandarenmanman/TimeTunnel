@@ -68,7 +68,7 @@ cp $OLDPWD/../bin/* .%{_prefix}/ptailfile/bin/
 %files
 # set file attribute here
 %defattr(-,admin,admin)
-%attr(0755,admin,admin) %{_prefix}/ptailfile/bin/run.sh
+%attr(0755,admin,admin) %{_prefix}/ptailfile/bin/*.sh
 
 # need not list every file here, keep it as this
 %{_prefix}

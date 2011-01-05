@@ -264,11 +264,9 @@ public class ByteBufferMessageTunnels implements Disposable, Dumpable<ByteBuffer
 
         @Override
         public Message<ByteBuffer> next() {
-          Message<ByteBuffer> message = null;
-          if (awaitForBalance()) return message;
-          message = reflux.poll();
-          if (message == null) message = feed.cursorOf(key).next();
-          if (message == null) return message;
+          if (awaitForBalance()) { return null; }
+          final Message<ByteBuffer> message = reflux.poll();
+          if (message == null) { return feed.cursorOf(key).next(); }
           return message;
         }
 

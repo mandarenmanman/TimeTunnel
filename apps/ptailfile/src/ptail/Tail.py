@@ -105,7 +105,6 @@ class Tail(Thread):
             except:
                 logger.error("abnormal error happened, exit this thread")
                 break
-            logger.debug("one file done")
             if len(self.q) <= 3:
                 self.stopevent.wait(self.sleeptime)
                 self.stopevent.clear()

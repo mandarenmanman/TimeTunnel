@@ -1,5 +1,6 @@
 package com.taobao.timetunnel.tunnel;
 
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertThat;
 
@@ -20,10 +21,21 @@ import com.taobao.util.Race;
  * @created 2010-12-3
  * 
  */
+@SuppressWarnings("unchecked")
 public class CoordinatorTest {
   @Test
-  @SuppressWarnings("unchecked")
-  public void shouldSynchronizedWalk() throws Exception {
+  public void shouldNoImpactOneWalker() throws Exception {
+    final int value = 10;
+    final Coordinator coordinator = Coordinators.coordinator(value);
+
+    final List<Future<Integer>> futures =
+      Race.run(new Person(coordinator.track("0")), new DelayHaltCaller());
+    final int steps0 = futures.get(0).get();
+    assertThat(steps0, greaterThan(value));
+  }
+
+  @Test
+  public void shouldSynchronizedTwoWalker() throws Exception {
     final int value = 10;
     final Coordinator coordinator = Coordinators.coordinator(value);
 

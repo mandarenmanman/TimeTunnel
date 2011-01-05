@@ -55,8 +55,7 @@ public class BrokerBootstrap {
 
   private static Center createCenterWith(final PropertiesHelper helper) {
     return new ZookeeperCenter(helper.getString("zookeeper.connectString"),
-                               helper.getInt("zookeeper.sessionTimeout"),
-                               helper.getInt("cluster.rebalancePeriod", 60));
+                               helper.getInt("zookeeper.sessionTimeout"));
   }
 
   private static MemoryMonitor createMonitorWith(final PropertiesHelper helper) {
@@ -80,7 +79,7 @@ public class BrokerBootstrap {
     final int port = helper.getInt("external.port");
     final String group = helper.getString("broker.group");
     final int syncPoint = helper.getInt("group.syncPoint", 200);
-    final int maxMessageSize = helper.get(sizeConverter, "chunk.buffer", "4K");
+    final int maxMessageSize = helper.get(sizeConverter, "broker.maxMessageSize", "4K");
 
     int chunkCapacity = helper.get(sizeConverter, "chunk.capacity", "64M");
     int chunkBuffer = helper.get(sizeConverter, "chunk.buffer", "32K");

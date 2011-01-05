@@ -71,7 +71,7 @@ final class ByteBufferFreezer implements Freezer<ByteBuffer> {
       this.path = path;
       this.capacity = capacity;
       this.buffer = ByteBuffer.allocate(buffer);
-      LOGGER.info("{} created.", path);
+      LOGGER.info("{} created.", this);
     }
 
     public synchronized void fix() {
@@ -102,8 +102,27 @@ final class ByteBufferFreezer implements Freezer<ByteBuffer> {
     }
 
     public synchronized boolean hasRemainingFor(final int size) {
-      if (fixed) throw new IllegalStateException("Can freeze buffer to a fixed chunk");
+      if (fixed) throw new IllegalStateException("Can't freeze buffer to a fixed chunk");
       return position + size + DATA_SIZE_LENGTH <= capacity;
+    }
+
+    @Override
+    public String toString() {
+      final StringBuilder builder = new StringBuilder();
+      builder.append("Chunk [buffer=")
+             .append(buffer)
+             .append(", capacity=")
+             .append(capacity)
+             .append(", fixed=")
+             .append(fixed)
+             .append(", path=")
+             .append(path)
+             .append(", pendings=")
+             .append(pendings)
+             .append(", position=")
+             .append(position)
+             .append("]");
+      return builder.toString();
     }
 
     private boolean bufferRemainingLessThan(final int length) {
@@ -139,7 +158,8 @@ final class ByteBufferFreezer implements Freezer<ByteBuffer> {
     private void replacePendings() throws IOException {
       Slicer slicer = null;
       while (!pendings.isEmpty()) {
-        if (slicer == null) slicer = new Slicer(path, pendings.size(), fixed);
+        if (fileBufferReader == null) fileBufferReader = new FileBufferReader(path);
+        if (slicer == null) slicer = new Slicer(fileBufferReader, pendings.size(), fixed);
         final ReplaceablePoint point = pendings.remove();
         point.replace(slicer.slice(point.position, point.length));
       }
@@ -147,6 +167,7 @@ final class ByteBufferFreezer implements Freezer<ByteBuffer> {
 
     private boolean fixed;
     private int position;
+    private FileBufferReader fileBufferReader;
 
     private static final int DATA_SIZE_LENGTH = 4;
     private static final Logger LOGGER = LoggerFactory.getLogger(Chunk.class);
@@ -184,6 +205,44 @@ final class ByteBufferFreezer implements Freezer<ByteBuffer> {
     }
 
     /**
+     * {@link FileBufferReader}
+     */
+    private static final class FileBufferReader {
+
+      public FileBufferReader(final File file) throws FileNotFoundException {
+        this.file = file;
+        final FileInputStream fis = new FileInputStream(file);
+        channel = fis.getChannel();
+      }
+
+      public void closeAndDeleteFile() {
+        try {
+          channel.close();
+        } catch (final Exception e) {
+          LOGGER.error("Can't close file channel of  " + file, e);
+        }
+        if (file.delete()) LOGGER.info("{} deleted", file);
+        else LOGGER.warn("{} delete failed", file);
+      }
+
+      public void read(final ByteBuffer byteBuffer, final long position) {
+        try {
+          channel.read(byteBuffer, position);
+        } catch (final Exception e) {
+          LOGGER.error("Can't read from " + file, e);
+        }
+      }
+
+      @Override
+      public String toString() {
+        return file.toString();
+      }
+
+      private final File file;
+      private final FileChannel channel;
+    }
+
+    /**
      * {@link ReplaceablePoint}
      */
     private final static class ReplaceablePoint implements Point<ByteBuffer> {
@@ -212,9 +271,9 @@ final class ByteBufferFreezer implements Freezer<ByteBuffer> {
                                             // cleared.
       }
 
-      private final AtomicReference<Point<ByteBuffer>> reference;
       private final int position;
       private final int length;
+      private final AtomicReference<Point<ByteBuffer>> reference;
 
     }
 
@@ -223,13 +282,9 @@ final class ByteBufferFreezer implements Freezer<ByteBuffer> {
      */
     private final static class Slicer {
 
-      private final boolean last;
-
-      public Slicer(final File file, int size, boolean last) throws IOException {
-        this.file = file;
+      public Slicer(final FileBufferReader fileBufferReader, final int size, final boolean last) throws IOException {
+        this.fileBufferReader = fileBufferReader;
         this.last = last;
-        final FileInputStream fis = new FileInputStream(file);
-        channel = fis.getChannel();
         referenceCount = new AtomicInteger(size);
       }
 
@@ -238,38 +293,23 @@ final class ByteBufferFreezer implements Freezer<ByteBuffer> {
 
           @Override
           public void clear() {
-            if (referenceCount.decrementAndGet() == 0) {
-              try {
-                channel.close();
-              } catch (final Exception e) {
-                LOGGER.error("Can't close file channel of  " + file, e);
-              }
-
-              if (last) {
-                if (file.delete()) LOGGER.info("{} deleted", file);
-                else LOGGER.warn("{} delete failed", file);
-              }
-            }
+            if (last && referenceCount.decrementAndGet() == 0)
+              fileBufferReader.closeAndDeleteFile();
           }
 
           @Override
           public ByteBuffer get() {
             final ByteBuffer byteBuffer = ByteBuffer.allocate(length);
-            try {
-              channel.read(byteBuffer, position + DATA_SIZE_LENGTH);
-            } catch (final Exception e) {
-              LOGGER.error("Can't read from " + file, e);
-            }
+            fileBufferReader.read(byteBuffer, position + DATA_SIZE_LENGTH);
             return (ByteBuffer) byteBuffer.flip();
           }
         };
       }
 
-      private final FileChannel channel;
-      private final File file;
+      private final boolean last;
       private final AtomicInteger referenceCount;
+      private final FileBufferReader fileBufferReader;
     }
-
   }
 
 }

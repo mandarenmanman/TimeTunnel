@@ -13,7 +13,7 @@ from ptail.Tail import Tail
 import signal
 import traceback
 from time import sleep
-from client.TimeTunnel2 import use, passport, set_router, release
+from client.TimeTunnel2 import use, passport, set_router, release, set_timeout
 
 basepath = os.path.dirname(__file__)
 config.fileConfig(basepath + "/../conf/log.conf")
@@ -85,14 +85,15 @@ if __name__ == '__main__':
     tail = []
     stop_flag = False
     
-    if sys.platform != 'win32':
-        daemonize()
+#    if sys.platform != 'win32':
+#        daemonize()
 
     single=SingleInstance()
 
     if conf.get_test_path() == "null":
         use(passport(conf.get_passport().split(":")[0], conf.get_passport().split(":")[1]))
         set_router(conf.get_routers())
+        set_timeout(conf.get_timeout())
         
     for topic in topics:
         t = Tail(index, conf)
@@ -103,14 +104,14 @@ if __name__ == '__main__':
     def stop(n=0, e=0):
         global stop_flag
         logger.error("stopping.....")
+        if conf.get_test_path() == "null":
+            release()
         for t in tail:
             logger.error("stopping " + str(t))
             try:
                 t.join(60)
             except:
                 logger.error(traceback.format_exc())
-        if conf.get_test_path() != "null":
-            release()
         stop_flag = True
         
         

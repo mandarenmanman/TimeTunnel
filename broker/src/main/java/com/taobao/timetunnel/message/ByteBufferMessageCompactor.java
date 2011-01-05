@@ -30,7 +30,7 @@ public final class ByteBufferMessageCompactor implements MessageFactory<ByteBuff
                                     final int chunkCapacity,
                                     final int chunkBuffer) {
     this.monitor = monitor;
-    freezers = new ByteBufferFreezers(home, chunkCapacity, chunkCapacity);
+    freezers = new ByteBufferFreezers(home, chunkCapacity, chunkBuffer);
     Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 
       @Override

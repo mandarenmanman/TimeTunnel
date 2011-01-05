@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.log4j.Logger;
-
 import com.taobao.timetunnel.client.disk.AsyncQueue;
 import com.taobao.timetunnel.client.disk.DiskQueueFactory;
 import com.taobao.timetunnel.client.impl.Authentication;
@@ -29,7 +27,7 @@ import com.taobao.timetunnel.client.util.ClosedException;
  */
 public abstract class TimeTunnel {
 
-	private static final Logger log = Logger.getLogger(TimeTunnel.class);
+	// private static final Logger log = Logger.getLogger(TimeTunnel.class);
 
 	static class MessageAid {
 		static Message message(final String topic, final byte[] bytes) {
@@ -339,16 +337,17 @@ public abstract class TimeTunnel {
 		if (tunnel == null) {
 			throw new IllegalArgumentException("null tunnel");
 		}
-		long begin = System.nanoTime();
+		// long begin = System.nanoTime();
 		AsyncQueue asyncQ = DiskQueueFactory.getInstance().create(tunnel);
 		assert (asyncQ != null);
 		if (tunnel.isCompress()) {
 			message.compress();
 		}
-		log.info("before add to asyncq elipse: " + (System.nanoTime() - begin));
-		begin = System.nanoTime();
+		// log.info("before add to asyncq elipse: " + (System.nanoTime() -
+		// begin));
+		// begin = System.nanoTime();
 		asyncQ.add(message);
-		log.info("add to asyncq elipse: " + (System.nanoTime() - begin));
+		// log.info("add to asyncq elipse: " + (System.nanoTime() - begin));
 	}
 
 	/**

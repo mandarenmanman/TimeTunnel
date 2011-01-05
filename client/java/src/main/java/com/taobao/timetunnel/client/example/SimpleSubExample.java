@@ -20,7 +20,7 @@ import com.taobao.timetunnel.client.util.ClosedException;
  * 
  */
 public class SimpleSubExample {
-	public static void main() {
+	public static void main(String[] args) {
 		//use authenticate
 		use(passport("username", "password"));
 		//subscribe a topic

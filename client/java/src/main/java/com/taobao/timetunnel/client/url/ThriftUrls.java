@@ -47,7 +47,7 @@ public class ThriftUrls implements Urls {
 
 	private ThriftUrls() {
 		this.prop = new HashMap<String, String>();
-		auth=new AtomicReference<Authentication>(null);
+		auth = new AtomicReference<Authentication>(null);
 	}
 
 	public static Urls getInstance() {
@@ -123,6 +123,7 @@ public class ThriftUrls implements Urls {
 			sg = bulidSG(brokerStr);
 		} catch (Exception e) {
 			cleanup();
+			log.error("auth: " + auth.get().getUserName() + ":" + auth.get().getPassword() + " prop:" + prop.toString());
 			log.error("get server group failed", e);
 			throw new URLException("get server group failed", e);
 		}

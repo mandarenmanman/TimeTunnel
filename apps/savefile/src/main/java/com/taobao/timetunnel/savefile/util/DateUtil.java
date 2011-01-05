@@ -67,6 +67,25 @@ public class DateUtil {
 		sb.append(padding(cal.get(Calendar.MINUTE)));
 		return sb.toString();
 	}
+	
+	public static String getTimeStampInSec(char separator,Date date) {
+		Calendar cal=Calendar.getInstance();
+		if (date!=null)
+		  cal.setTime(date);
+		StringBuilder sb=new StringBuilder();
+		sb.append(cal.get(Calendar.YEAR));
+		sb.append(separator);
+		sb.append(padding(cal.get(Calendar.MONTH)+1));
+		sb.append(separator);
+		sb.append(padding(cal.get(Calendar.DAY_OF_MONTH)));
+		sb.append(separator);
+		sb.append(padding(cal.get(Calendar.HOUR_OF_DAY)));
+		sb.append(separator);
+		sb.append(padding(cal.get(Calendar.MINUTE)));
+		sb.append(separator);
+		sb.append(padding(cal.get(Calendar.SECOND)));
+		return sb.toString();
+	}
 
 	public static String getTimeStampInMin(Date date) {
 		Calendar cal=Calendar.getInstance();

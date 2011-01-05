@@ -2,9 +2,6 @@ package com.taobao.timetunnel.client.disk;
 
 import java.nio.ByteBuffer;
 
-import com.taobao.timetunnel.client.Message;
-import com.taobao.timetunnel.client.message.MessageFactory;
-
 /**
  * 
  * @author <jiugao@taobao.com>
@@ -23,10 +20,6 @@ public class MessageWapper {
 		this.firstMInFile = firstMInFile;
 		this.startPos = startPos;
 		this.currentFileName = currentFileName;
-	}
-
-	public Message getM() {
-		return MessageFactory.getInstance().createMessageFrom(bf.array());
 	}
 
 	public ByteBuffer getBf() {

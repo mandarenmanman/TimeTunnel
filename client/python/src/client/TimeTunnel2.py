@@ -22,6 +22,9 @@ tcPool = TCPool(destination)
 
 def set_router(urls):
     conf.setRouters(urls)
+
+def set_timeout(timeout):
+    conf.setTimeout(timeout)
     
 def use(passport):
     global auth

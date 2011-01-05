@@ -1,8 +1,16 @@
 package com.taobao.timetunnel.client;
 
 import java.io.File;
+import java.lang.reflect.Array;
+import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.taobao.timetunnel.client.BufferFinance.Accountant;
 import com.taobao.timetunnel.client.BufferFinance.Cashier;
@@ -47,60 +55,76 @@ public final class TestClient {
   }
 
   public static void parallelPubs(final ClientFactory factory,
-                                  final String token,
+                                  final String tokens,
                                   final String category,
-                                  final int num,
                                   final TestRuntimeReport report,
                                   final BufferFinance finance) throws Exception {
-    final Callable<Void>[] pubs = new Pub[num];
-    for (int i = 0; i < pubs.length; i++)
-      pubs[i] = pub(factory, token + i, report, category, finance.cashier());
-    Race.run(pubs);
+    Race.run(callables(factory, tokens, category, report, finance, pubFactory));
   }
 
+  @SuppressWarnings("unchecked")
   public static void parallelPubsAndSubs(final ClientFactory factory,
                                          final String pubToken,
                                          final String subToken,
                                          final String category,
-                                         final int pubNum,
-                                         final int subNum,
                                          final TestRuntimeReport pubReport,
                                          final TestRuntimeReport subReport,
                                          final BufferFinance finance) throws Exception {
-    @SuppressWarnings("unchecked") final Callable<Void>[] list =
-      (Callable<Void>[]) new Callable<?>[pubNum + subNum];
+    final Callable<Void>[] pubs =
+      callables(factory, pubToken, category, pubReport, finance, pubFactory);
+    final Callable<Void>[] subs =
+      callables(factory, subToken, category, subReport, finance, subFactory);
+    final List<Callable<Void>> list = new LinkedList<Callable<Void>>();
+    for (final Callable<Void> callable : pubs) {
+      list.add(callable);
+    }
+    for (final Callable<Void> callable : subs) {
+      list.add(callable);
+    }
 
-    for (int i = 0; i < pubNum; i++) {
-      list[i] = pub(factory, pubToken + i, pubReport, category, finance.cashier());
-    }
-    for (int i = pubNum, j = 0; j < subNum; j++, i++) {
-      list[i] = sub(factory, subToken + j, category, subReport, finance.accountant());
-    }
-    Race.run(list);
+    Race.run(list.toArray((Callable<Void>[]) Array.newInstance(Callable.class, 0)));
   }
 
   public static void parallelSubs(final ClientFactory factory,
-                                  final String token,
+                                  final String tokens,
                                   final String category,
-                                  final int num,
                                   final TestRuntimeReport report,
                                   final BufferFinance finance) throws Exception {
-    final Callable<Void>[] subs = new Sub[num];
-    for (int i = 0; i < subs.length; i++)
-      subs[i] = sub(factory, token + i, category, report, finance.accountant());
-    Race.run(subs);
+    Race.run(callables(factory, tokens, category, report, finance, subFactory));
   }
 
   public static void retry(final int retry) {
     TestClient.retry = retry;
   }
 
+  private static <V> Callable<V>[] callables(final ClientFactory factory,
+                                             final String tokens,
+                                             final String category,
+                                             final TestRuntimeReport report,
+                                             final BufferFinance finance,
+                                             final CallableFactory<V> callableFactory) {
+    final Matcher matcher = tokenPattern.matcher(tokens);
+    if (!matcher.matches()) throw new IllegalArgumentException(tokens);
+    final String tokenPrefix = matcher.group(1);
+    final int begin = Integer.parseInt(matcher.group(2));
+    final int end = Integer.parseInt(matcher.group(3));
+    @SuppressWarnings("unchecked") final Callable<V>[] callables =
+      (Callable<V>[]) Array.newInstance(Callable.class, end - begin);
+    for (int i = begin; i < end; i++) {
+      final String token = tokenPrefix + i;
+      System.out.println(token);
+      callables[i] = callableFactory.createBy(factory, token, category, report, finance);
+    }
+    return callables;
+  }
+
   private static void printUsage(final String[] args) {
     System.out.println("Invaild command and arguments : " + Arrays.toString(args));
     System.out.println("Usage : ");
     System.out.println("\tzookeeper  <server-port> <data-dir> <tick-time> <initialized-node-script-file>");
-    System.out.println("\tpublisher  <token> <broker-host> <broker-port> <category> <message-size> <parallel> <report-standard> <report-print-period> <times>");
-    System.out.println("\tsubscriber <token> <broker-host> <broker-port> <category> <message-size> <parallel> <report-standard> <report-print-period> <times>");
+    System.out.println("\tzombie     <broker-host> <broker-port> <num>");
+    System.out.println("\tpublisher  <tokens|pub[0-99]> <broker-host> <broker-port> <category> <message-size> <report-standard> <report-print-period> <times>");
+    System.out.println("\tsubscriber <tokens|sub[0-99]> <broker-host> <broker-port> <category> <message-size> <report-standard> <report-print-period> <times>");
   }
 
   private static Callable<Void> pub(final ClientFactory factory,
@@ -118,6 +142,33 @@ public final class TestClient {
                                     final Accountant accountant) {
     return new Sub(factory, token, retry, report, category, accountant);
   }
+
+  private final static CallableFactory<Void> pubFactory = new CallableFactory<Void>() {
+
+    @Override
+    public Callable<Void> createBy(final ClientFactory factory,
+                                   final String token,
+                                   final String category,
+                                   final TestRuntimeReport report,
+                                   final BufferFinance finance) {
+      return pub(factory, token, report, category, finance.cashier());
+    }
+
+  };
+
+  private final static CallableFactory<Void> subFactory = new CallableFactory<Void>() {
+
+    @Override
+    public Callable<Void> createBy(final ClientFactory factory,
+                                   final String token,
+                                   final String category,
+                                   final TestRuntimeReport report,
+                                   final BufferFinance finance) {
+      return sub(factory, token, category, report, finance.accountant());
+    }
+  };
+
+  private final static Pattern tokenPattern = Pattern.compile("([\\w/]+)\\[(\\d+)-(\\d+)\\]");
 
   private static final NoneTestRuntimeReport noneTestRuntimeReport = new NoneTestRuntimeReport();
 
@@ -158,7 +209,7 @@ public final class TestClient {
           }
         }, "zookeeper-server");
         thread.start();
-        
+
         Thread.sleep(200L); // wait for server started.
         new ZookeeperNodeCreater(("localhost:" + port), (tickTime * 2)).createNodesBy(scriptFile);
 
@@ -172,10 +223,10 @@ public final class TestClient {
 
           @Override
           protected void doRun() throws Exception {
-            parallelPubs(factory, token, category, num, report, finance);
+            parallelPubs(factory, tokens, category, report, finance);
           }
         }.call();
-        
+
       }
     },
     subscriber {
@@ -185,10 +236,40 @@ public final class TestClient {
 
           @Override
           protected void doRun() throws Exception {
-            parallelSubs(factory, token, category, num, report, finance);
+            parallelSubs(factory, tokens, category, report, finance);
           }
         }.call();
-        
+
+      }
+    },
+    zombie {
+      @Override
+      void startWith(final String... args) throws Exception {
+        final String host = args[1];
+        final int port = Integer.parseInt(args[2]);
+        final int num = Integer.parseInt(args[3]);
+        final List<Socket> deads = new ArrayList<Socket>();
+        for (int i = 0; i < num; i++) {
+          deads.add(new Socket(host, port));
+        }
+
+        final AtomicBoolean stop = new AtomicBoolean();
+        final Runnable target = new Runnable() {
+
+          @Override
+          public void run() {
+            for (final Socket socket : deads) {
+              try {
+                socket.close();
+              } catch (final Exception e) {}
+            }
+            stop.set(true);
+          }
+        };
+        Runtime.getRuntime().addShutdownHook(new Thread(target, "shutdown-zombie"));
+        while (!stop.get()) {
+          Thread.sleep(1000L);
+        }
       }
     };
 
@@ -196,24 +277,31 @@ public final class TestClient {
 
   }
 
+  private interface CallableFactory<V> {
+    Callable<V> createBy(final ClientFactory factory,
+                         final String token,
+                         final String category,
+                         final TestRuntimeReport report,
+                         final BufferFinance finance);
+  }
+
   /**
    * {@link Driver}
    */
   private static abstract class Driver implements Callable<Void> {
     public Driver(final String... args) throws Exception {
-      token = args[1];
+      tokens = args[1];
       category = args[4];
-      num = Integer.parseInt(args[6]);
       final String host = args[2];
       final int port = Integer.parseInt(args[3]);
       factory = clientFactory(host, port);
 
-      final long standard = Long.parseLong(args[7]);
-      final int printPeriod = Integer.parseInt(args[8]);
+      final long standard = Long.parseLong(args[6]);
+      final int printPeriod = Integer.parseInt(args[7]);
       report = newTestRuntimeReport(standard, printPeriod);
 
       final int size = Integer.parseInt(args[5]);
-      final int capacity = Integer.parseInt(args[9]);
+      final int capacity = Integer.parseInt(args[8]);
       finance = finance(size, capacity);
     }
 
@@ -228,9 +316,8 @@ public final class TestClient {
 
     protected final ClientFactory factory;
     protected final TestRuntimeReport report;
-    protected final int num;
     protected final String category;
-    protected final String token;
+    protected final String tokens;
     protected final BufferFinance finance;
 
   }

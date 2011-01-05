@@ -1,8 +1,8 @@
 namespace java com.taobao.timetunnel.thrift.gen
 
 exception Failure {
-  1: i16     code,        
-  2: string reason,   
+  1: i16		code,        
+  2: string	reason,   
   3: string detail    
 }
 

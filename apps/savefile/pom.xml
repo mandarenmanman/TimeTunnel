@@ -76,22 +76,11 @@
 				<configuration>
 					<outputDirectory>${basedir}/target/dist/lib</outputDirectory>
 					<forceCreation>true</forceCreation>
+					<includes>
+						<include>**/com/**</include>
+					</includes>
 				</configuration>
 				<executions>
-					<execution>
-						<id>default-jar</id>
-						<phase>package</phase>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-						<inherited>false</inherited>
-						<configuration>
-							<includes>
-								<include>**/*.class</include>
-							</includes>
-							<finalName>savefile</finalName>
-						</configuration>
-					</execution>
 					<execution>
 						<id>filter</id>
 						<phase>package</phase>
@@ -144,6 +133,16 @@
 			<groupId>com.taobao</groupId>
 			<artifactId>timetunnel-client</artifactId>
 			<version>0.2.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.taobao</groupId>
+			<artifactId>timetunnel-idl</artifactId>
+			<version>0.2.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>1.4</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>

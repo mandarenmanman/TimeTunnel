@@ -1,6 +1,8 @@
 package com.taobao.timetunnel.broker;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -72,13 +74,15 @@ public final class ReliableServiceClients {
 
     public RsClient(final InetSocketAddress inetSocketAddress) throws TTransportException {
       final Client.Factory factory = new Client.Factory();
+      ping(inetSocketAddress);
       try {
         for (int i = 0; i < size; i++) {
           queue.add(ClientUtils.newClient(factory, inetSocketAddress));
         }
       } catch (final Exception e) {
-        dispose();
-        throw new TTransportException(e);
+        while (!queue.isEmpty())
+          ClientUtils.close(queue.remove());
+        throw new TTransportException(inetSocketAddress.toString(), e);
       }
     }
 
@@ -95,7 +99,7 @@ public final class ReliableServiceClients {
     }
 
     @Override
-    public void dispose() {
+    public synchronized void dispose() {
       try {
         for (int i = 0; i < size; i++) {
           Client client = null;
@@ -131,6 +135,24 @@ public final class ReliableServiceClients {
         }
       });
 
+    }
+
+    private void ping(final InetSocketAddress inetSocketAddress) throws TTransportException {
+      for (int i = 2;; i--) {
+        try {
+          new Socket(inetSocketAddress.getAddress(), inetSocketAddress.getPort());
+          break;
+        } catch (final IOException e) {
+          if (i == 0) throw new TTransportException(inetSocketAddress.toString(), e);
+
+          try {
+            TimeUnit.MILLISECONDS.sleep(500);
+          } catch (final InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            break;
+          }
+        }
+      }
     }
 
     private final BlockingQueue<Client> queue = new LinkedBlockingQueue<Client>();
