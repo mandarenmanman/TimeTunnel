@@ -3,7 +3,7 @@
 # http://www.rpm.org/max-rpm/ch-rpm-inside.html              #
 ##############################################################
 Name: t_dp_timetunnel_ptailfile
-Version: 0.1.0
+Version: 0.2.0
 # if you want get version number from outside, use like this
 #Version: %(cat version.txt)
 Release: 1
@@ -74,7 +74,7 @@ cp $OLDPWD/../bin/* .%{_prefix}/ptailfile/bin/
 %{_prefix}
 # create an empy dir
 #%dir %{_prefix}/cluster/apps/python_shareclient/log/
-%config(noreplace) %{_prefix}/ptailfile/conf/*.conf
+%config(noreplace) %{_prefix}/ptailfile/conf/*
 # need bakup old config file, so indicate here
 #%config %{_prefix}/etc/sample.conf
 # or need keep old config file, so indicate with "noreplace"

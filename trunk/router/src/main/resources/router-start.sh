@@ -22,7 +22,7 @@ then
         done
 fi
 
-script="java -Xmx1096m -Xms1096m -XX:+UseConcMarkSweepGC -Dlog4j.configuration=file:${BASE_CONF}/log4j.properties -classpath ${BASE_CONF}:${BASE_LIB}/* com.taobao.timetunnel2.router.service.ServiceEngine";
+script="java -Xmx1096m -Xms1096m -XX:+UseConcMarkSweepGC -Dtt.log.file=${BASE_DIR}/log/routersrv.log -Dlog4j.configuration=file:${BASE_CONF}/log4j.properties -classpath ${BASE_CONF}:${BASE_LIB}/* com.taobao.timetunnel2.router.service.ServiceEngine";
 echo $script >/tmp/timetunnel.router.start;
 nohup $script &
 pid=$!

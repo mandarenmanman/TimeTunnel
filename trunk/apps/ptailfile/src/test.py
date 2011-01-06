@@ -54,7 +54,7 @@ if __name__ == '__main__':
     
     daemonize()
     while True:
-    	logger.error("stopped")
+        logger.error("stopped")
     
     
     

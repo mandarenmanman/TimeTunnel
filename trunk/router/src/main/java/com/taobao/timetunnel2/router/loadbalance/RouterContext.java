@@ -128,7 +128,7 @@ public class RouterContext implements Context, Visitor{
 					
 					if ("SUB".equalsIgnoreCase(clientType)){
 						String size = Util.getStrParam(Constants.RECVWINSIZE, prop.get(Constants.RECVWINSIZE));
-						json.append("\", \"subscriber\":\"").append(topic+"-"+userId)
+						json.append("\", \"subscriber\":\"").append(userId+"-"+topic)
 						    .append("\", \"receiveWindowSize\":\"").append(size);
 						prefix="s"; 					
 					}else
@@ -150,23 +150,28 @@ public class RouterContext implements Context, Visitor{
 					List<String> dirs = ccb.getResult();*/
 					if(dirs!=null && dirs.size()>0){	
 						for(String path: dirs){						
-							if(path.startsWith("s") && "SUB".equals(clientType) ||
-							   path.startsWith("p") && "PUB".equals(clientType) ){
-								return ParamsKey.ZNode.session+"/"+clientId+"/"+path;
-							}
+							/*if(path.startsWith("s") && "SUB".equals(clientType) ||
+							   path.startsWith("p") && "PUB".equals(clientType) ){								
+								return ParamsKey.ZNode.session+"/"+clientId+"/"+path;							
+							}*/
+							if(path.startsWith("s") && "SUB".equals(clientType)||
+							   path.startsWith("p") && "PUB".equals(clientType)){
+								token = ParamsKey.ZNode.session+"/"+clientId+"/"+path;
+								break;
+							}													
 						}
-					}
+					}else{
 					/*SetDataCallBack cb = new SetDataCallBack();
 					CountDownLatch signal = new CountDownLatch(1);*/
-					String sessionId = Util.getMD5(String.valueOf(System.nanoTime())+clientId);
-					token = ParamsKey.ZNode.session+"/"+clientId+"/"+prefix+sessionId;
+						String sessionId = Util.getMD5(String.valueOf(System.nanoTime())+clientId);
+						token = ParamsKey.ZNode.session+"/"+clientId+"/"+prefix+sessionId;
+					}
 					zks.setData(token, json.toString());
 					/*try {
 						signal.await(2, TimeUnit.SECONDS);
 					} catch (InterruptedException e) {
 						return null;
-					}*/
-									
+					}*/									
 				}catch(ValidationException e){
 					throw new ServiceException(e);				
 				}catch (Exception e) {

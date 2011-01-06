@@ -19,7 +19,7 @@ def on_error(oserror):
     logger.error("error during scan: " + str(oserror.filename))
     
 class DirScanner(object):
-    """directory scanner, depth firstly, and filter older folder"""
+    """directory scanner, width firstly, and filter older folder"""
     def __init__(self, root, tmp, modify_time, regx, q, history_files):
         self.root = root
         self.modify_time = modify_time
@@ -27,23 +27,33 @@ class DirScanner(object):
         logger.debug("path regx: " + str(self.path_regx))
         self.q = q
         self.tmp = tmp
+        #trace already done files
         self.toDel = []
         self.to_del_modify_time = 0
+        #for samoe mtime file use
         self.his_files = history_files
     
     def __split_regx(self, regx):
-        ret=[]
-        count=regx.count("/")
-        i=0
-        last_index=-1
-        while i<count:
-            index=regx.index("/", last_index+1)
-            ret.append(re.compile(regx[last_index+1:index]))
-            last_index=index
-            i+=1
-        ret.append(re.compile(regx[last_index+1:]))
+        ret = []
+        count = regx.count("/")
+        i = 0
+        last_index = -1
+        while i < count:
+            index = regx.index("/", last_index + 1)
+            ret.append(re.compile(regx[last_index + 1:index]))
+            last_index = index
+            i += 1
+        ret.append(re.compile(regx[last_index + 1:]))
         return ret
-        
+    
+    def __mtime(self, path):
+        mtime = 0;
+        try:
+            mtime = os.path.getmtime(path)
+        except:
+            logger.error("file not exist: " + str(path))
+        return mtime
+             
     def __intern_scan(self):
         res = []
         max_depth = len(self.path_regx)
@@ -51,30 +61,35 @@ class DirScanner(object):
         logger.debug("scan dir and last modify time: " + str(self.modify_time))
         if os.path.exists(self.root) == False:
             return
-        parent_dir=None
+        parent_dir = None
+        #recode last modify time
+        old_modify_time = self.modify_time
+        #recode max modify time during scan
+        max_time = [self.modify_time]
+#        print "1: "+str(max_time[0])
         #width first scan
         for path, subpaths, files in os.walk(self.root, True, on_error, False):
-            normpath = os.path.normpath(path)
-            inner_parent_dir=os.path.dirname(normpath) 
-            if inner_parent_dir!=parent_dir:
+            inner_parent_dir = os.path.dirname(os.path.normpath(path)) 
+            #increment search depth base on weather parent directory changes or not
+            if inner_parent_dir != parent_dir:
                 depth += 1
-                parent_dir=inner_parent_dir
+                parent_dir = inner_parent_dir
             
             if depth >= max_depth:
                     logger.info("search to the most depth: " + str(max_depth))
                     break
             regx = self.path_regx[depth]
             
-            if depth < max_depth-1:
+            if depth < max_depth - 1:
                 to_remove = []
                 for subp in subpaths:
                     if regx.match(subp) is None:
                         logger.debug("remove dir " + str(subp))
                         to_remove.append(subp)
                         continue
-                    mtime = os.path.getmtime(os.path.join(path, subp))
+                    mtime = self.__mtime(os.path.join(path, subp))
                     #change <= to <
-                    if depth==max_depth-2 and mtime < self.modify_time:
+                    if depth == max_depth - 2 and mtime < self.modify_time:
                         logger.debug("remove dir" + str(subp) + " due to not newer than " + str(mtime))
                         to_remove.append(subp)
                 for i in to_remove:
@@ -83,15 +98,19 @@ class DirScanner(object):
                 for file in files:
                     full_path = os.path.join(path, file)
                     #change > to >=
-                    if regx.match(file)!=None and os.path.getmtime(full_path) >= self.modify_time:
+                    mt = self.__mtime(full_path)
+                    if regx.match(file) != None and mt >= self.modify_time:
                         logger.debug("file hit: " + full_path)
                         res.append(full_path)
+#                        print "2-: "+str(max_time[0])
+                        if mt > max_time[0]:
+                            max_time[0] = mt
+#                            print "2: "+str(max_time[0])
         if len(res) == 0:
             return
-        res = sorted(res, key=lambda f:os.path.getmtime(f))
-        last = res[len(res) - 1]
-        old_modify_time = self.modify_time
-        self.modify_time = os.path.getmtime(last)
+        self.modify_time = max_time[0]
+#        print "3: "+str(self.modify_time)
+        res = sorted(res, key=lambda f:self.__mtime(f))
         for file_res in res:
             try:
                 self.q.index(file_res)
@@ -117,11 +136,7 @@ class DirScanner(object):
     
     #not thread-safe
     def addToDel(self, filename):
-        mtime = 0
-        try:
-            mtime = os.path.getmtime(filename)
-        except:
-            logger.error("file not exist during addToDel: " + str(filename))
+        mtime = self.__mtime(filename)
         if mtime > self.to_del_modify_time:
             self.toDel = []
             self.to_del_modify_time = mtime    

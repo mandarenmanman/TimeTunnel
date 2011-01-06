@@ -67,7 +67,8 @@ cp $OLDPWD/../target/dist/bin/* .%{_prefix}/savefile/bin/
 %files
 # set file attribute here
 %defattr(-,admin,admin)
-%attr(0755,admin,admin) %{_prefix}/savefile/bin/run.sh
+%attr(0755,admin,admin) %{_prefix}/savefile/bin/start.sh
+%attr(0755,admin,admin) %{_prefix}/savefile/bin/stop.sh
 
 # need not list every file here, keep it as this
 %{_prefix}

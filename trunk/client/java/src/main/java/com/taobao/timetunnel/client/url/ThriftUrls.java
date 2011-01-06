@@ -115,7 +115,10 @@ public class ThriftUrls implements Urls {
 		try {
 			if (transport == null)
 				connect();
-			prop.put(Constants.LOCAL_HOST, Config.getInstance().getAppName());
+			if (sequence)
+				prop.put(Constants.LOCAL_HOST, Config.getInstance().getAppNameWithOutPid());
+			else
+				prop.put(Constants.LOCAL_HOST, Config.getInstance().getAppName());
 			prop.put(Constants.RECVWINSIZE, String.valueOf(size));
 			prop.put(Constants.TYPE, type);
 			prop.put(Constants.TIMEOUT, String.valueOf(timeout));

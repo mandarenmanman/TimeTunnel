@@ -51,7 +51,6 @@ class Tail(Thread):
                 self.offset = 0L
         return
             
-        
     def __load_conf(self, i, c):
         self.path_regx = c.get_path_regx().split(",")[i]
         self.base_path = c.get_base_path().split(",")[i]
