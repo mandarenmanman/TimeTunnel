@@ -20,10 +20,9 @@ public class Config {
 	private int readQueueSize;
 
 	private String appName;
-
 	private String compressClassFullName;
-
 	private int rpcTimeOut;
+	private String appNameWithOutPid;
 
 	private static Config instance = new Config();
 
@@ -61,11 +60,18 @@ public class Config {
 	}
 
 	private void appNameConfig() {
+		StringBuilder sb = new StringBuilder();
+		StringBuilder sb2 = new StringBuilder();
 		try {
-			this.appName = System.getProperty("APPNAME");
-			if (this.appName == null || "".equals(this.appName.trim())) {
-				this.appName = HostUtils.id();
+			String p = System.getProperty("APPNAME");
+			if (p != null && !"".equals(p.trim())) {
+				sb.append(p.trim()).append("-");
+				sb2.append(p.trim()).append("-");
 			}
+			sb2.append(HostUtils.hostname());
+			sb.append(HostUtils.id());
+			this.appName = sb.toString();
+			this.appNameWithOutPid = sb2.toString();
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -103,7 +109,7 @@ public class Config {
 		}
 		String maxLoadSizeStr = System.getProperty("MAXLOADSIZE");
 		if (maxLoadSizeStr == null || "".equals(maxLoadSizeStr)) {
-			maxLoadSize = 2* 1024 * 1024;
+			maxLoadSize = 2 * 1024 * 1024;
 		} else {
 			this.maxLoadSize = Integer.parseInt(maxLoadSizeStr);
 		}
@@ -183,6 +189,10 @@ public class Config {
 
 	public void setRpcTimeOut(int rpcTimeOut) {
 		this.rpcTimeOut = rpcTimeOut;
+	}
+
+	public String getAppNameWithOutPid() {
+		return appNameWithOutPid;
 	}
 
 	@Override

@@ -59,12 +59,28 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
   }
 
   @Override
-  public Category category(final String name) {
+  public InnerCategory category(final String name) {
     try {
       return categories.getOrCreateIfNotExist(name);
     } catch (final Exception e) {
       throw new InvalidCategoryException(e);
     }
+  }
+
+  @Override
+  public Session checkedSession(final ByteBuffer token) {
+    try {
+      final InnerSession session = sessions.getOrCreateIfNotExist(token);
+      session.lastTickTime = SystemTime.current();
+      return session;
+    } catch (final Exception e) {
+      throw new InvalidTokenException(e);
+    }
+  }
+
+  @Override
+  public Session invalidSession(final ByteBuffer token) {
+    return new InvaildSession(token);
   }
 
   @Override
@@ -87,7 +103,8 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
 
     final Matcher matcher = CATEGORY_PATTERN.matcher(path);
     if (matcher.matches()) {
-      category(matcher.group(1));
+      final String category = matcher.group(1);
+      category(category).setSubscribersOf(category);
     }
   }
 
@@ -149,11 +166,6 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
   }
 
   @Override
-  public Session invalidSession(final ByteBuffer token) {
-    return new InvaildSession(token);
-  }
-
-  @Override
   public void unregister() {
     LOGGER.info("Unregister broker.");
     connector.disconnect();
@@ -187,16 +199,15 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
   private static final String CATEGORIES = "/categories";
   private static final String BROKERS = "/brokers";
   private static final Logger LOGGER = LoggerFactory.getLogger(ZookeeperCenter.class);
-
   private static final Pattern CATEGORY_PATTERN = Pattern.compile(CATEGORIES
       + "/(\\w+)/subscribers");
+
   private final ZooKeeperConnector connector;
   private final Categories categories = new Categories();
   private final Sessions sessions = new Sessions();
-
   private final JsonParser parser = new JsonParser();
-  private ClusterChangedWatcher watcher;
 
+  private ClusterChangedWatcher watcher;
   private String currentGroup;
 
   /**
@@ -223,19 +234,13 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
 
     public InnerCategory(final String key) {
       this.key = key;
-      try {
-        final String path = MessageFormat.format((CATEGORIES + "/{0}/subscribers"), key);
-        final List<String> children = connector.getChildren(path, true);
-        readers = new HashSet<String>(children);
-        LOGGER.info("{} created.", this);
-      } catch (final Exception e) {
-        throw new RuntimeException(e);
-      }
+      setSubscribersOf(key);
+      LOGGER.info("{} created.", this);
     }
 
     @Override
     public boolean isInvaildSubscriber(final String key) {
-      return !readers.contains(key);
+      return !subscribers.contains(key);
     }
 
     @Override
@@ -246,7 +251,7 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
 
     @Override
     public boolean isMessageUselessReadBy(final Set<String> readers) {
-      return readers.containsAll(this.readers);
+      return readers.containsAll(subscribers);
     }
 
     @Override
@@ -259,14 +264,24 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
       final StringBuilder builder = new StringBuilder();
       builder.append("InnerCategory [key=")
              .append(key)
-             .append(", readers=")
-             .append(readers)
+             .append(", subscribers=")
+             .append(subscribers)
              .append("]");
       return builder.toString();
     }
 
+    private void setSubscribersOf(final String key) {
+      try {
+        final String path = MessageFormat.format((CATEGORIES + "/{0}/subscribers"), key);
+        final List<String> children = connector.getChildren(path, true);
+        subscribers = new HashSet<String>(children);
+      } catch (final Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+
     private final String key;
-    private volatile Set<String> readers = new HashSet<String>();
+    private volatile Set<String> subscribers = new HashSet<String>();
   }
 
   private final class InnerSession implements Session {
@@ -405,7 +420,7 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
     }
 
     public void invalid(final String path) {
-      final FutureTask<InnerSession> task = map.get(path);
+      final FutureTask<InnerSession> task = map.get(Bytes.toBuffer(path));
       if (task == null) return;
       try {
         final InnerSession session = task.get();
@@ -460,17 +475,6 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
         return isTimeout(session, timeout, current);
       }
     };
-  }
-
-  @Override
-  public Session checkedSession(ByteBuffer token) {
-    try {
-      final InnerSession session = sessions.getOrCreateIfNotExist(token);
-      session.lastTickTime = SystemTime.current();
-      return session;
-    } catch (final Exception e) {
-      throw new InvalidTokenException(e);
-    }
   }
 
 }

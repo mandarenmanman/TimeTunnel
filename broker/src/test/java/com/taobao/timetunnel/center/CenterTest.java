@@ -17,6 +17,7 @@ import com.taobao.timetunnel.InjectMocksSupport;
 import com.taobao.timetunnel.InvalidTokenException;
 import com.taobao.timetunnel.center.Center.ClusterChangedWatcher;
 import com.taobao.timetunnel.client.ZookeeperNodeCreater;
+import com.taobao.timetunnel.message.Category;
 import com.taobao.timetunnel.session.Session;
 import com.taobao.timetunnel.zookeeper.ZooKeeperConnector;
 import com.taobao.timetunnel.zookeeper.ZooKeeperConnector.ZooKeeperListener;
@@ -85,6 +86,36 @@ public class CenterTest extends InjectMocksSupport {
       fail("sub10 should timeout after rebalance.");
     } catch (final InvalidTokenException e) {}
     connector.disconnect();
+  }
+
+  @Test
+  public void shouldAwareSessionTokenDeleted() throws Exception {
+    Thread.sleep(1000L);
+    Session session = center.checkedSession(Bytes.toBuffer("/clients/pub10"));
+    final ZooKeeperConnector connector =
+      new ZooKeeperConnector(connectString, sessionTimeout, listener);
+    connector.connect();
+    connector.delete("/clients/pub10", -1);
+    connector.disconnect();
+    assertThat(session.isInvalid(), is(true));
+  }
+  
+  @Test
+  public void shouldUpdateSubscribersOfCategory() throws Exception {
+    final Category category = center.category("chat");
+    assertThat(category.isInvaildSubscriber("dw"), is(false));
+    assertThat(category.isInvaildSubscriber("ad"), is(true));
+    final ZooKeeperConnector connector =
+      new ZooKeeperConnector(connectString, sessionTimeout, listener);
+    connector.connect();
+    connector.create("/categories/chat/subscribers/ad",
+                     Bytes.NULL,
+                     Ids.OPEN_ACL_UNSAFE,
+                     CreateMode.PERSISTENT);
+    connector.disconnect();
+    Thread.sleep(100L);
+    assertThat(category.isInvaildSubscriber("ad"), is(false));
+    assertThat(category.isInvaildSubscriber("dw"), is(false));
   }
 
   @After

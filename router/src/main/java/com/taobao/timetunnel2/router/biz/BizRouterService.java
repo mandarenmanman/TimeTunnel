@@ -33,9 +33,9 @@ public class BizRouterService implements RouterService.Iface {
 		String clientId = prop.get(Constants.LOCAL_HOST)+RouterConsts.ID_SPLIT+topic;
 		String type = prop.get(Constants.TYPE);
 		log.info(String.format(
-				"One request has been received: thread=%s,user=%s,topic=%s,isApply=%s,clientId=%s,type=%s",
+				"One request has been received: thread=%s,user=%s,pwd=%s,topic=%s,isApply=%s,clientId=%s,type=%s,prop=%s",
 				Thread.currentThread().getId(),
-				user, topic, apply, clientId, type));		
+				user, pwd, topic, apply, clientId, type, prop));		
 		LoadBalancer lb = null;
 		if(RouterConsts.LB_APPLY.equalsIgnoreCase(apply))
 			lb = routercontext.getPolicy(ParamsKey.LBPolicy.s_policy);
