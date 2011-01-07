@@ -192,7 +192,7 @@ public abstract class ServiceEngine implements Seveice{
 		log.info("initialize....");
 
 		try {
-			Properties prop = Util.loadConf();//RouterContext.getContext().getAppParam();
+			Properties prop = Util.getConf();//RouterContext.getContext().getAppParam();
 			String name = prop.getProperty(ParamsKey.Service.serverType, "BLOCK");
 			String classname = ParamsKey.Service.serverClass.BLOCK.getClassname();
 			try{

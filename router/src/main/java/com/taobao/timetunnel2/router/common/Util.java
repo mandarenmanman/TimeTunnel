@@ -14,6 +14,7 @@ import com.taobao.timetunnel2.router.exception.ServiceException;
 public class Util {
 	private static final Logger log = Logger.getLogger(Util.class);
 	private static final Gson gson = new Gson();
+	private static Properties prop;
 
 	public static String toJsonStr(Object obj) {
 		return gson.toJson(obj);
@@ -119,7 +120,13 @@ public class Util {
     	}
     }
     
-    public static Properties loadConf() throws ServiceException{
+    public static Properties getConf() throws ServiceException{
+    	if(prop==null)
+    		prop = loadConf();
+    	return prop;
+    }
+    
+    private static Properties loadConf() throws ServiceException{
     	Properties appParam = new Properties();
 		try {
 			appParam.load(Util.class.getClassLoader().getResourceAsStream(RouterConsts.ROUTER_PATH));

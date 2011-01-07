@@ -67,6 +67,9 @@ public class Config {
 			if (p != null && !"".equals(p.trim())) {
 				sb.append(p.trim()).append("-");
 				sb2.append(p.trim()).append("-");
+			} else {
+				sb.append("default").append("-");
+				sb2.append("default").append("-");
 			}
 			sb2.append(HostUtils.hostname());
 			sb.append(HostUtils.id());

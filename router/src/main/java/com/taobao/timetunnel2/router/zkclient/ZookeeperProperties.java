@@ -19,7 +19,7 @@ public class ZookeeperProperties{
 	public ZookeeperProperties(Properties prop){
 		if(prop!=null){			
 			try {
-				zkSrvList = prop.getProperty(ParamsKey.ZKService.hosts, "vm-dev1.sds1.corp.alimama.com:5181");
+				zkSrvList = Util.getStrParam(prop.getProperty(ParamsKey.ZKService.hosts), null);
 				zkTimeout = Util.getIntParam(ParamsKey.ZKService.timeout, 
 						prop.getProperty(ParamsKey.ZKService.timeout),	3000, 1, 500000);
 				poolSize = Util.getIntParam(ParamsKey.ZKService.timeout, 

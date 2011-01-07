@@ -18,6 +18,8 @@ import java.util.concurrent.FutureTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.jms.IllegalStateException;
+
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,8 +141,6 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
       createIfNotExist(currentGroup);
       connector.getChildren(currentGroup, true);
 
-      initCategories();
-
       final String path =
         connector.create(currentGroup + "/b",
                          Bytes.toBytes(info),
@@ -174,13 +174,6 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
   protected void createIfNotExist(final String node) throws KeeperException, InterruptedException {
     if (connector.exists(node, true) == null)
       connector.create(node, Bytes.NULL, OPEN_ACL_UNSAFE, PERSISTENT);
-  }
-
-  protected void initCategories() throws KeeperException, InterruptedException {
-    final List<String> children = connector.getChildren(CATEGORIES, true);
-    for (final String child : children) {
-      category(child);
-    }
   }
 
   private synchronized void fireOnClusterChanged() {
@@ -274,6 +267,7 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
       try {
         final String path = MessageFormat.format((CATEGORIES + "/{0}/subscribers"), key);
         final List<String> children = connector.getChildren(path, true);
+        if(children.isEmpty()) throw new IllegalStateException(key + " should has subscribers.");
         subscribers = new HashSet<String>(children);
       } catch (final Exception e) {
         throw new RuntimeException(e);
