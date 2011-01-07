@@ -1,5 +1,7 @@
 package com.taobao.timetunnel2.router.service;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -50,7 +52,16 @@ public class ServiceProperties {
 						prop.getProperty(ParamsKey.Service.stopTimeoutVal),	0, 60, 10000);
 				stopTimeoutUnit = TimeUnit.valueOf(prop.getProperty(
 						ParamsKey.Service.stopTimeoutUnit, "SECONDS"));
-				bindAddr = prop.getProperty(ParamsKey.Service.host, "localhost");
+				bindAddr = prop.getProperty(ParamsKey.Service.host);
+				if(bindAddr==null || (bindAddr!=null && bindAddr.isEmpty())){
+					try {
+						InetAddress host = InetAddress.getLocalHost();
+						bindAddr = host.getHostName();
+					} catch (UnknownHostException e) {
+						log.error(ParamsKey.Service.host+":"+e.getMessage());
+						System.exit(-1);
+					}
+				}
 				port = Util.getIntParam(ParamsKey.Service.port, 
 						prop.getProperty(ParamsKey.Service.port), 9090,	1025, 65534);
 				cliTimeout = Util.getIntParam(ParamsKey.Service.cliTimeout,
@@ -147,5 +158,4 @@ public class ServiceProperties {
 	public void setMaxReadBufferBytes(long maxReadBufferBytes) {
 		this.maxReadBufferBytes = maxReadBufferBytes;
 	}    
-
 }

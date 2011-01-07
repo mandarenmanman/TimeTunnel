@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export PYTHONPATH=/home/admin/TimeTunnel/pclient/src/:$PYTHONPATH
+export PYTHONPATH=/home/admin/timetunnel/pclient/src/:$PYTHONPATH
 
 base_dir=`dirname $0`
 PID_FILE=${base_dir}/.ptailfile.pid;

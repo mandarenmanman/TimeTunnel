@@ -16,8 +16,10 @@ import org.apache.zookeeper.AsyncCallback.ChildrenCallback;
 import org.apache.zookeeper.AsyncCallback.StatCallback;
 import org.apache.zookeeper.data.Stat;
 
+
 import com.taobao.timetunnel.thrift.router.Constants;
 import com.taobao.timetunnel2.router.biz.BrokerUrl;
+import com.taobao.timetunnel2.router.biz.Session;
 import com.taobao.timetunnel2.router.biz.UserInfo;
 import com.taobao.timetunnel2.router.common.ParamsKey;
 import com.taobao.timetunnel2.router.common.RouterConsts;
@@ -55,8 +57,7 @@ public class RouterContext implements Context, Visitor{
 	}
 	
 	private void init() throws ServiceException{
-		//loadConf();
-		appParam = Util.loadConf();
+		appParam = Util.getConf();
 		Map<String, WatchType> watchpaths = new HashMap<String, WatchType>();
 		watchpaths.put(ParamsKey.ZNode.topic, WatchType.DataChanged);
 		watchpaths.put(ParamsKey.ZNode.user, WatchType.DataChanged);
@@ -70,22 +71,6 @@ public class RouterContext implements Context, Visitor{
 		monitor.doServe();
 		sync();
 	}
-	
-/*	private void loadConf() throws ServiceException{
-		appParam = new Properties();
-		try {
-			appParam.load(this.getClass().getClassLoader().getResourceAsStream(RouterConsts.ROUTER_PATH));
-		} catch (FileNotFoundException e) {
-			throw new ServiceException(String.format(
-					"The router-config file does not exist.[%s]",
-					RouterConsts.ROUTER_PATH));
-		} catch (IOException e) {
-			log.error(e);
-			throw new ServiceException(String.format(
-					"There are some error in reading from the router config file.[%s]",
-					e.getCause()));
-		}
-	}*/
 
 	@Override
 	public void sync(){
@@ -122,56 +107,53 @@ public class RouterContext implements Context, Visitor{
 			String prefix = "";
 			if(Boolean.parseBoolean(appParam.getProperty(ParamsKey.Service.isPersisted, "true"))){
 				try{
-					StringBuilder json = new StringBuilder(512);
-					json.append("{\"type\":\"").append(clientType)
-						.append("\", \"timeout\":\"").append(timeout);
+					Session ssin = new Session(); 
 					
+					/*StringBuilder json = new StringBuilder(512);
+					json.append("{\"type\":\"").append(clientType)
+						.append("\", \"timeout\":\"").append(timeout);*/
+					ssin.setType(clientType);
+					ssin.setTimeout(timeout);
 					if ("SUB".equalsIgnoreCase(clientType)){
 						String size = Util.getStrParam(Constants.RECVWINSIZE, prop.get(Constants.RECVWINSIZE));
-						json.append("\", \"subscriber\":\"").append(userId+"-"+topic)
-						    .append("\", \"receiveWindowSize\":\"").append(size);
+						/*json.append("\", \"subscriber\":\"").append(userId+"-"+topic)
+						    .append("\", \"receiveWindowSize\":\"").append(size);*/
+						ssin.setSubscriber(userId+"-"+topic);
+						ssin.setReceiveWindowSize(size);					
 						prefix="s"; 					
 					}else
 					{
 						prefix="p"; 	
 					}
-					json.append("\"}");
+					//json.append("\"}");
 					ZookeeperService zks = zkpool.getZooKeeperClient();
 					List<String> dirs = zks.getChildren(ParamsKey.ZNode.session+"/"+clientId);
-					/*
-					CountDownLatch count = new CountDownLatch(1);
-					CCallback ccb = new CCallback();		
-					zks.getChildren(ParamsKey.ZNode.session+"/"+clientId, ccb, count);
-					try {
-						count.await(2, TimeUnit.SECONDS);
-					} catch (InterruptedException e) {
-						return null;
-					}
-					List<String> dirs = ccb.getResult();*/
+
 					if(dirs!=null && dirs.size()>0){	
 						for(String path: dirs){						
 							/*if(path.startsWith("s") && "SUB".equals(clientType) ||
 							   path.startsWith("p") && "PUB".equals(clientType) ){								
 								return ParamsKey.ZNode.session+"/"+clientId+"/"+path;							
 							}*/
+							//set the token value, if changed
 							if(path.startsWith("s") && "SUB".equals(clientType)||
 							   path.startsWith("p") && "PUB".equals(clientType)){
 								token = ParamsKey.ZNode.session+"/"+clientId+"/"+path;
-								break;
+								String data = zks.getData(path);
+								Session session = (Session) Util.fromJson(
+										data, Session.class);
+								if (!session.equals(ssin)){									
+									zks.setData(token, Util.toJsonStr(ssin));									
+								}
+								return token;								
 							}													
 						}
-					}else{
-					/*SetDataCallBack cb = new SetDataCallBack();
-					CountDownLatch signal = new CountDownLatch(1);*/
-						String sessionId = Util.getMD5(String.valueOf(System.nanoTime())+clientId);
-						token = ParamsKey.ZNode.session+"/"+clientId+"/"+prefix+sessionId;
 					}
-					zks.setData(token, json.toString());
-					/*try {
-						signal.await(2, TimeUnit.SECONDS);
-					} catch (InterruptedException e) {
-						return null;
-					}*/									
+					//not exist,create a new token
+					String sessionId = Util.getMD5(String.valueOf(System.nanoTime())+clientId);
+					token = ParamsKey.ZNode.session+"/"+clientId+"/"+prefix+sessionId;
+					//zks.setData(token, json.toString());
+					zks.setData(token, Util.toJsonStr(ssin));
 				}catch(ValidationException e){
 					throw new ServiceException(e);				
 				}catch (Exception e) {
