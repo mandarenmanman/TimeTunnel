@@ -113,7 +113,7 @@ public final class TestClient {
     for (int i = begin; i < end; i++) {
       final String token = tokenPrefix + i;
       System.out.println(token);
-      callables[i] = callableFactory.createBy(factory, token, category, report, finance);
+      callables[i - begin] = callableFactory.createBy(factory, token, category, report, finance);
     }
     return callables;
   }

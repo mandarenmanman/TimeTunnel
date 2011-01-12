@@ -15,15 +15,22 @@ public class ZookeeperProperties{
 	private int zkTimeout;
 	private String zkSrvList;
 	private int poolSize;
+	private int retryCount;
+	private int retryInterval;
 	
 	public ZookeeperProperties(Properties prop){
 		if(prop!=null){			
 			try {
-				zkSrvList = Util.getStrParam(prop.getProperty(ParamsKey.ZKService.hosts), null);
+				zkSrvList = Util.getStrParam(ParamsKey.ZKService.hosts, 
+						prop.getProperty(ParamsKey.ZKService.hosts), Util.getHostName(), true);
 				zkTimeout = Util.getIntParam(ParamsKey.ZKService.timeout, 
-						prop.getProperty(ParamsKey.ZKService.timeout),	3000, 1, 500000);
-				poolSize = Util.getIntParam(ParamsKey.ZKService.timeout, 
-						prop.getProperty(ParamsKey.ZKClient.size), 1, 1, 10000);
+						prop.getProperty(ParamsKey.ZKService.timeout), 3000, 3000, 500000);
+				poolSize = Util.getIntParam(ParamsKey.ZKClient.size, 
+						prop.getProperty(ParamsKey.ZKClient.size), 1, 1, 500);
+				retryCount = Util.getIntParam(ParamsKey.ZKClient.retrycount, 
+						prop.getProperty(ParamsKey.ZKClient.retrycount), 3, 0, 10000);
+				retryInterval = Util.getIntParam(ParamsKey.ZKClient.interval, 
+						prop.getProperty(ParamsKey.ZKClient.interval), 1000, 10, 10000);
 			} catch (ValidationException e) {
 				log.error(e.getMessage());
 				System.exit(-1);
@@ -48,6 +55,22 @@ public class ZookeeperProperties{
 	}
 	public int getPoolSize() {
 		return poolSize;
+	}
+
+	public int getRetryCount() {
+		return retryCount;
+	}
+
+	public void setRetryCount(int retryCount) {
+		this.retryCount = retryCount;
+	}
+
+	public int getRetryInterval() {
+		return retryInterval;
+	}
+
+	public void setRetryInterval(int retryInterval) {
+		this.retryInterval = retryInterval;
 	}
 	
 }

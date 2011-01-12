@@ -14,7 +14,7 @@ import org.apache.log4j.Logger;
  */
 public abstract class StoppableService implements Runnable {
 	private static final Logger log = Logger.getLogger(StoppableService.class);
-	private static final int STOP_TIMEOUT_IN_SECONDS = 120;
+	private static final int STOP_TIMEOUT_IN_SECONDS = 240;
 
 	public static void main(String args[]) throws Exception {
 		StoppableService s = new StoppableService() {
@@ -54,8 +54,12 @@ public abstract class StoppableService implements Runnable {
 				break;
 			}
 		}
-		log.info("out of loop, shutting down...");
 		stoppedSignal.countDown();
+		log.info("main process ended");
+		// system exit due to exception, will then invoke JVM shutdown hook
+		if (!stopRequested.get()) {
+			System.exit(-1);
+		}
 	}
 
 	public void start() {

@@ -54,6 +54,7 @@ public class SubscribeFutureImpl implements SubscribeFuture {
 			@Override
 			public void run() {
 				timeup.set(true);
+				client.pause();
 			}
 		}, timeout, unit);
 	}
@@ -87,7 +88,7 @@ public class SubscribeFutureImpl implements SubscribeFuture {
 			try {
 				m = MessageFactory.getInstance().createMessageFrom(BytesUtil.toBytes(it.next()));
 			} catch (Exception e) {
-				//skip this error
+				// skip this error
 				continue;
 			}
 			if (this.t.isCompress())
@@ -128,7 +129,8 @@ public class SubscribeFutureImpl implements SubscribeFuture {
 	@Override
 	public void cancel() {
 		log.error("INFO: Tunnel cancelled: " + this.t.getName());
-		stop.set(true);
-		VirtualSubConnectionFactory.getInstance().remove(t);
+		if (!stop.getAndSet(true)) {
+			VirtualSubConnectionFactory.getInstance().remove(t);
+		}
 	}
 }

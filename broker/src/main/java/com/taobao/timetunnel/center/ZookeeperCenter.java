@@ -65,6 +65,7 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
     try {
       return categories.getOrCreateIfNotExist(name);
     } catch (final Exception e) {
+      categories.clear(name);
       throw new InvalidCategoryException(e);
     }
   }
@@ -106,7 +107,7 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
     final Matcher matcher = CATEGORY_PATTERN.matcher(path);
     if (matcher.matches()) {
       final String category = matcher.group(1);
-      category(category).setSubscribersOf(category);
+      if(categories.contains(category))category(category).setSubscribersOf(category);
     }
   }
 
@@ -216,6 +217,14 @@ public class ZookeeperCenter implements Center, ZooKeeperListener {
           return new InnerCategory(key);
         }
       });
+    }
+
+    public void clear(String category) {
+      map.remove(category);
+    }
+
+    public boolean contains(String category) {
+      return map.containsKey(category);
     }
 
   }

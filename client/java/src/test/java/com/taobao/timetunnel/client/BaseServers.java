@@ -55,4 +55,12 @@ abstract public class BaseServers {
 		localBrokerService = new LocalBrokerService();
 		localBrokerService.bootstrap(Integer.parseInt(port), brokerImpl);
 	}
+	
+	protected void stopRouter() {
+		localRouterService.stop();		
+	}
+	
+	protected void stopBroker() {
+		localBrokerService.stop();
+	}
 }

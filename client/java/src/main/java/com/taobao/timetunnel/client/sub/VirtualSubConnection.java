@@ -30,6 +30,7 @@ public class VirtualSubConnection {
 	private ServerGroup sg;
 	private final List<PhysicalSubConnection> physicCon;
 	private final AtomicBoolean stop;
+	private final AtomicBoolean pause;
 	private final ReentrantLock lock;
 	private int index = 0;
 
@@ -37,13 +38,15 @@ public class VirtualSubConnection {
 		this.t = t;
 		this.sg = null;
 		this.stop = new AtomicBoolean(false);
+		this.pause = new AtomicBoolean(false);
 		this.physicCon = new LinkedList<PhysicalSubConnection>();
 		this.lock = new ReentrantLock();
 	}
 
 	private void constuct() throws ClosedException {
-		while (sg == null && !stop.get()) {
+		while (sg == null && !stop.get() && !pause.get()) {
 			extractUrl();
+			SleepUtils.sleep(2000);
 		}
 		if (sg == null)
 			throw new ClosedException("has been closed", null);
@@ -72,6 +75,8 @@ public class VirtualSubConnection {
 			throw new ClosedException("has been closed", null);
 		while (!stop.get()) {
 			try {
+				if(pause.get())
+					return null;
 				return next().ackAndGet(t.getName(), sg.getTokenInSerialize());
 			} catch (ClosedException e) {
 				log.error("{}", e);
@@ -149,5 +154,9 @@ public class VirtualSubConnection {
 		} finally {
 			lock.unlock();
 		}
+	}
+	
+	public void pause(){
+		pause.set(true);
 	}
 }

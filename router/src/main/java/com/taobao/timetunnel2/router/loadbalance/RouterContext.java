@@ -8,14 +8,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.AsyncCallback.ChildrenCallback;
-import org.apache.zookeeper.AsyncCallback.StatCallback;
-import org.apache.zookeeper.data.Stat;
-
 
 import com.taobao.timetunnel.thrift.router.Constants;
 import com.taobao.timetunnel2.router.biz.BrokerUrl;
@@ -108,16 +103,10 @@ public class RouterContext implements Context, Visitor{
 			if(Boolean.parseBoolean(appParam.getProperty(ParamsKey.Service.isPersisted, "true"))){
 				try{
 					Session ssin = new Session(); 
-					
-					/*StringBuilder json = new StringBuilder(512);
-					json.append("{\"type\":\"").append(clientType)
-						.append("\", \"timeout\":\"").append(timeout);*/
 					ssin.setType(clientType);
 					ssin.setTimeout(timeout);
 					if ("SUB".equalsIgnoreCase(clientType)){
 						String size = Util.getStrParam(Constants.RECVWINSIZE, prop.get(Constants.RECVWINSIZE));
-						/*json.append("\", \"subscriber\":\"").append(userId+"-"+topic)
-						    .append("\", \"receiveWindowSize\":\"").append(size);*/
 						ssin.setSubscriber(userId+"-"+topic);
 						ssin.setReceiveWindowSize(size);					
 						prefix="s"; 					
@@ -125,21 +114,16 @@ public class RouterContext implements Context, Visitor{
 					{
 						prefix="p"; 	
 					}
-					//json.append("\"}");
 					ZookeeperService zks = zkpool.getZooKeeperClient();
 					List<String> dirs = zks.getChildren(ParamsKey.ZNode.session+"/"+clientId);
 
 					if(dirs!=null && dirs.size()>0){	
 						for(String path: dirs){						
-							/*if(path.startsWith("s") && "SUB".equals(clientType) ||
-							   path.startsWith("p") && "PUB".equals(clientType) ){								
-								return ParamsKey.ZNode.session+"/"+clientId+"/"+path;							
-							}*/
 							//set the token value, if changed
 							if(path.startsWith("s") && "SUB".equals(clientType)||
 							   path.startsWith("p") && "PUB".equals(clientType)){
 								token = ParamsKey.ZNode.session+"/"+clientId+"/"+path;
-								String data = zks.getData(path);
+								String data = zks.getData(token);
 								Session session = (Session) Util.fromJson(
 										data, Session.class);
 								if (!session.equals(ssin)){									
@@ -149,10 +133,9 @@ public class RouterContext implements Context, Visitor{
 							}													
 						}
 					}
-					//not exist,create a new token
+					//create a new token, if not exist
 					String sessionId = Util.getMD5(String.valueOf(System.nanoTime())+clientId);
 					token = ParamsKey.ZNode.session+"/"+clientId+"/"+prefix+sessionId;
-					//zks.setData(token, json.toString());
 					zks.setData(token, Util.toJsonStr(ssin));
 				}catch(ValidationException e){
 					throw new ServiceException(e);				
@@ -182,44 +165,17 @@ public class RouterContext implements Context, Visitor{
 			this.policy = lbpolicy;
 	}
 	
-	public Properties getAppParam() {
-		return appParam;
-	}
-
 	@Override
 	public void cleanup() {
 		if(monitor!=null)
-			monitor.finish();		
-		authMap = null;
-		routerMap = null;
+			monitor.finish();
+		if(authMap!=null)
+			authMap.clear();
+		if(routerMap!=null)
+			routerMap.clearAll();
 		if(zkpool!=null)
 			zkpool.close();
 		context = null;
-	}
-	
-	class SetDataCallBack implements StatCallback{
-		@Override
-		public void processResult(int rc, String path, Object ctx, Stat stat) {
-			CountDownLatch signal = (CountDownLatch)ctx;
-			signal.countDown();
-		}
-		
-	}
-	
-	class CCallback implements ChildrenCallback{
-		private List<String> dirs; 
-		
-		@Override
-		public void processResult(int rc, String path, Object ctx,
-				List<String> dirs) {			
-			this.dirs = dirs;
-			CountDownLatch count = (CountDownLatch)ctx;
-			count.countDown();
-		}	
-		
-		public List<String> getResult(){
-			return dirs;
-		}
 	}
 	
 	public void syncTopic(boolean exitFlag){	

@@ -10,6 +10,8 @@ public abstract class ParamsKey {
 	
 	public static class ZKClient{
 		public final static String size = "ZK_CLIENT_SIZE";
+		public final static String retrycount = "ZK_RETRY_COUNT";
+		public final static String interval = "ZK_RETRY_INTERVAL";
 	}
 	
 	public static class ZNode{

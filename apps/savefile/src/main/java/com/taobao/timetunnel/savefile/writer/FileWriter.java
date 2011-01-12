@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 
 import com.taobao.timetunnel.client.Message;
@@ -21,7 +20,6 @@ import com.taobao.timetunnel.client.util.ClosedException;
 import com.taobao.timetunnel.savefile.app.Conf;
 import com.taobao.timetunnel.savefile.app.SaveFileApp;
 import com.taobao.timetunnel.savefile.app.StoppableService;
-import com.taobao.timetunnel.savefile.util.BytesUtil;
 import com.taobao.timetunnel.util.filter.ContentFilter;
 
 /**
@@ -88,11 +86,9 @@ public class FileWriter extends StoppableService {
 		for (Message message : messages) {
 			List<ContentFilter> contentFilters = SaveFileApp.filters.get(message.getTopic());
 			if (contentFilters == null) {
-				OutputStreamStruct outputStream = outputStreamManager.getOutputStream(message.getTopic());
 				if ((random.nextInt(100) + 1) > samplingRate)
 					continue;
-				writeRaw(message, outputStream);
-				outputStream.stream.flush();
+				writeRaw(message, message.getTopic());
 			} else {
 				Message m = (Message) message;
 				if (m.isCompressed())
@@ -110,54 +106,34 @@ public class FileWriter extends StoppableService {
 
 	public void writeFilted(String[] lines, String topic, ContentFilter contentFilter) throws IOException {
 		String tag = contentFilter.getClass().getSimpleName();
-		OutputStreamStruct outputStream = outputStreamManager.getOutputStream(topic + "-" + tag);
+		String baseFileName = topic + "-" + tag;
 		for (String line : lines) {
 			String processedLine = null;
 			try {
 				processedLine = contentFilter.filter(line + "\n");
 			} catch (Throwable t) {
 				log.error("filter process error and ignore it", t);
+				continue;
 			}
 			if (processedLine == null) {
 				log.debug("this content has been filtered: " + line);
 				continue;
 			}
 			log.debug("this content has been hitted: " + processedLine);
-			try {
-				if (this.serializable) {
-					byte[] bytes = processedLine.getBytes(Charset.forName("UTF-8"));
-					IOUtils.write(BytesUtil.intToBytes(bytes.length), outputStream.stream);
-					IOUtils.write(bytes, outputStream.stream);
-					outputStream.bytesWritten += 4 + bytes.length;
-				} else {
-					IOUtils.write(processedLine, outputStream.stream, "UTF-8");
-					outputStream.bytesWritten += processedLine.length();
-				}
-			} catch (Throwable e) {
-				log.error("{}", e);
-				if (e instanceof IOException)
-					throw (IOException) e;
-				else
-					throw new RuntimeException(e);
-			}
-			log.debug("content has been write to file");
+			byte[] bytes = processedLine.getBytes(Charset.forName("UTF-8"));
+			outputStreamManager.write(bytes, baseFileName);
 		}
-		outputStream.stream.flush();
 	}
 
-	public void writeRaw(IOSerializable serializable, OutputStreamStruct outputStream) throws IOException {
+	public void writeRaw(IOSerializable serializable, String tag) throws IOException {
 		if (this.serializable) {
 			byte[] data = serializable.serialize();
-			IOUtils.write(BytesUtil.intToBytes(data.length), outputStream.stream);
-			IOUtils.write(data, outputStream.stream);
-			outputStream.bytesWritten += 4 + data.length;
+			outputStreamManager.writeWithLen(data, tag);
 		} else {
 			Message m = (Message) serializable;
 			if (m.isCompressed())
 				m.decompress();
-			String content = new String(m.getContent(), "UTF-8");
-			IOUtils.write(content, outputStream.stream, "UTF-8");
-			outputStream.bytesWritten += content.length();
+			outputStreamManager.write(m.getContent(), tag);
 		}
 	}
 

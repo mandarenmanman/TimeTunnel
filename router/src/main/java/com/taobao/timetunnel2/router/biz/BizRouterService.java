@@ -14,6 +14,7 @@ import com.taobao.timetunnel.thrift.router.RouterService;
 import com.taobao.timetunnel2.router.common.ParamsKey;
 import com.taobao.timetunnel2.router.common.RouterConsts;
 import com.taobao.timetunnel2.router.common.Util;
+import com.taobao.timetunnel2.router.exception.LoadBalanceException;
 import com.taobao.timetunnel2.router.exception.ServiceException;
 import com.taobao.timetunnel2.router.loadbalance.LoadBalancer;
 import com.taobao.timetunnel2.router.loadbalance.RouterContext;
@@ -50,7 +51,15 @@ public class BizRouterService implements RouterService.Iface {
 					List<String> serverList = new ArrayList<String>();
 					rslt.setSessionId(sessionId);
 					if ("PUB".equalsIgnoreCase(type)) {
-						String chosensrv = lb.choose(topic, clientId);
+						String chosensrv = null;
+						try {
+							chosensrv = lb.choose(topic, clientId);
+						} catch (LoadBalanceException e) {
+							ExReason ec = ExReason.NOTFOUND_BROKERURL;	
+							log.warn("The request has been resolved."+ec.name()+"["+ec.getValue()+"],"+e.getMessage());										
+							throw new RouterException((short)ec.getValue(),
+									ec.name(), e.getMessage());
+						}
 						serverList.add(chosensrv);
 						log.info(String.format(
 								"One request has been received: thread=%s,sessionId=%s,brokerurl=%s",
@@ -64,19 +73,20 @@ public class BizRouterService implements RouterService.Iface {
 					log.debug("The request has been resolved.");
 					return Util.toJsonStr(rslt);
 				} else {
-					log.debug("The request has been resolved.");
 					ExReason ec = ExReason.NOTFOUND_BROKERURL;
+					log.warn("The request has been resolved."+ec.name()+"["+ec.getValue()+"],"+RouterConsts.ERRMSG_NO_SERVER);	
 					throw new RouterException((short)ec.getValue(),
 							ec.name(), RouterConsts.ERRMSG_NO_SERVER);
 				}
 
 			}
-			log.debug("The request has been resolved.");
 			ExReason ec = ExReason.INVALID_USERORPWD;
+			log.warn("The request has been resolved."+ec.name()+"["+ec.getValue()+"],"+RouterConsts.ERRMSG_AUTH_FAIL);
 			throw new RouterException((short)ec.getValue(),
 					ec.name(), RouterConsts.ERRMSG_AUTH_FAIL);
 		}catch(ServiceException e){
 			ExReason ec = ExReason.SERVICE_UNAVAILABLE;
+			log.warn("The request has been resolved."+ec.name()+"["+ec.getValue()+"],"+RouterConsts.ERRMSG_UNAVAILABLE);
 			throw new RouterException((short)ec.getValue(),
 					ec.name(), RouterConsts.ERRMSG_UNAVAILABLE+":"+e.getMessage());
 		}

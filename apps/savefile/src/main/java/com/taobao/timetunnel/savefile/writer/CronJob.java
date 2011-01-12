@@ -39,7 +39,7 @@ public class CronJob {
 
 		public void execute(JobExecutionContext context) throws JobExecutionException {
 			log.error("Flush output streams");
-			System.out.println("current time: "+System.currentTimeMillis());
+			System.out.println("current time: " + System.currentTimeMillis());
 			try {
 				outputStreamManager.switchAllOutputStreams();
 			} catch (IOException e) {
@@ -65,12 +65,10 @@ public class CronJob {
 
 	public void stop() {
 		log.error("FileWriter close all outputStream");
-		synchronized (outputStreamManager) {
-			try {
-				outputStreamManager.closeAllOutputStreams();
-			} catch (IOException e) {
-				log.error("close output stream when stop CrobJob:", e);
-			}
+		try {
+			outputStreamManager.closeAllOutputStreams();
+		} catch (IOException e) {
+			log.error("close output stream when stop CrobJob:", e);
 		}
 		log.error("FileWriter stop scheduler");
 		try {

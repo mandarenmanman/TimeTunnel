@@ -38,7 +38,7 @@ public class LocalBrokerService {
 					server.serve();
 				}
 			}.start();
-			log.error("Local broker started at: " + port);
+			log.debug("Local broker started at: " + port);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -53,9 +53,12 @@ public class LocalBrokerService {
 	}
 
 	public synchronized static void stop() {
-		server.stop();
-		SleepUtils.sleep(1000);
-		started.set(false);
+		if (started.get()){
+			server.stop();
+			SleepUtils.sleep(1000);
+			started.set(false);
+			log.debug("Local broker has been stoped.");
+		}
 	}
 
 	public static void main(String[] args) {

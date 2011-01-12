@@ -22,7 +22,7 @@ finger_print=`echo $abs_path | md5sum | awk '{print $1}'`
 
 PID_FILE=${base_dir}/.${finger_print}.pid;
 
-script="java -DROUTER=localhost:9999 -DRPCTIMEOUT=30000 -classpath $CLASSPATH  com.taobao.timetunnel.savefile.app.SaveFileApp"
+script="java -Xmx2g -Xms2g -DROUTER=localhost:9999 -DRPCTIMEOUT=30000 -classpath $CLASSPATH  com.taobao.timetunnel.savefile.app.SaveFileApp"
 echo $script > /tmp/timetunnel.savefile.start
 nohup $script >> /tmp/timetunnel.savefile.start &
 pid=$!

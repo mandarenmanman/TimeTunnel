@@ -24,7 +24,7 @@ public abstract class ServiceEngine implements Seveice{
     
     
     public void start() throws Exception {
-    	this.serviceProperties = new ServiceProperties();
+    	this.serviceProperties = new ServiceProperties(Util.getConf());
         if (!started.get()) {
             if (starting.compareAndSet(false, true)) {
                 boolean childrenStarted = false;

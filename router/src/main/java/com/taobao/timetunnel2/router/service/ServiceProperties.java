@@ -1,7 +1,5 @@
 package com.taobao.timetunnel2.router.service;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -11,7 +9,6 @@ import com.taobao.timetunnel2.router.common.ParamsKey;
 import com.taobao.timetunnel2.router.common.Util;
 import com.taobao.timetunnel2.router.common.ValidationException;
 import com.taobao.timetunnel2.router.exception.ServiceException;
-import com.taobao.timetunnel2.router.loadbalance.RouterContext;
 
 public class ServiceProperties {
 	private static final Logger log = Logger.getLogger(ServiceProperties.class);
@@ -33,35 +30,23 @@ public class ServiceProperties {
 	private TimeUnit stopTimeoutUnit = TimeUnit.SECONDS;
 	private long maxReadBufferBytes = Long.MAX_VALUE;
 
-	public ServiceProperties() throws ServiceException {
-		loadConf();
-	}
-	
-	private void loadConf() throws ServiceException{
-		Properties prop = RouterContext.getContext().getAppParam();
+	public ServiceProperties(Properties prop) throws ServiceException {
 		if(prop!=null){
 			try {
 				minWorkerThreads = Util.getIntParam(ParamsKey.Service.minThreads, 
 						prop.getProperty(ParamsKey.Service.minThreads),	5, 1, 10000);
 				maxWorkerThreads = Util.getIntParam(ParamsKey.Service.maxThreads, 
-						prop.getProperty(ParamsKey.Service.maxThreads),	10000, 1, 10000);
+						prop.getProperty(ParamsKey.Service.maxThreads),	1000, 1, 10000);
 				if (minWorkerThreads > maxWorkerThreads)
 					throw new ValidationException(String.format(
 						"%s is greater than %s!", minWorkerThreads, maxWorkerThreads));
 				stopTimeoutVal = Util.getIntParam(ParamsKey.Service.stopTimeoutVal, 
-						prop.getProperty(ParamsKey.Service.stopTimeoutVal),	0, 60, 10000);
+						prop.getProperty(ParamsKey.Service.stopTimeoutVal),	60, 0, 10000);
 				stopTimeoutUnit = TimeUnit.valueOf(prop.getProperty(
 						ParamsKey.Service.stopTimeoutUnit, "SECONDS"));
 				bindAddr = prop.getProperty(ParamsKey.Service.host);
-				if(bindAddr==null || (bindAddr!=null && bindAddr.isEmpty())){
-					try {
-						InetAddress host = InetAddress.getLocalHost();
-						bindAddr = host.getHostName();
-					} catch (UnknownHostException e) {
-						log.error(ParamsKey.Service.host+":"+e.getMessage());
-						System.exit(-1);
-					}
-				}
+				if(bindAddr==null || (bindAddr!=null && bindAddr.isEmpty()))				
+					bindAddr = Util.getHostName();
 				port = Util.getIntParam(ParamsKey.Service.port, 
 						prop.getProperty(ParamsKey.Service.port), 9090,	1025, 65534);
 				cliTimeout = Util.getIntParam(ParamsKey.Service.cliTimeout,
@@ -78,7 +63,7 @@ public class ServiceProperties {
 			}
 		}		
 	}
-
+	
 	public String getId() {
 		return id;
 	}
