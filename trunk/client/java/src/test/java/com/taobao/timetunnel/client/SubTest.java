@@ -69,7 +69,15 @@ public class SubTest extends BaseServers {
 		});
 		List<Message> list2 = sub.get(2, TimeUnit.SECONDS);
 		assertThat(list2.size(), equalTo(0));
-
+		
+		this.stopBroker();
+		List<Message> list3 = sub.get(10, TimeUnit.SECONDS);
+		assertThat(list3.size(), equalTo(0));
+		
+		this.stopRouter();
+		List<Message> list4 = sub.get(3, TimeUnit.SECONDS);
+		assertThat(list4.size(), equalTo(0));
+		
 		sub.cancel();
 	}
 

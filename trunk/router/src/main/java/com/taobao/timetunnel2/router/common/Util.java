@@ -2,6 +2,8 @@ package com.taobao.timetunnel2.router.common;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
@@ -118,6 +120,17 @@ public class Util {
     			throw new ValidationException(String.format("The param[%s] needs a required value.", param));
     		return defaultvalue;
     	}
+    }
+    
+    public static String getHostName() throws ServiceException{
+    	String bindAddr = null;
+    	try {
+			InetAddress host = InetAddress.getLocalHost();
+			bindAddr = host.getHostName();
+		} catch (UnknownHostException e) {
+			throw new ServiceException(ParamsKey.Service.host+":"+e.getMessage());
+		}
+		return bindAddr;
     }
     
     public static Properties getConf() throws ServiceException{

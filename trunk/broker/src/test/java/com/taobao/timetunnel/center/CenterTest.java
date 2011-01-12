@@ -99,7 +99,28 @@ public class CenterTest extends InjectMocksSupport {
     connector.disconnect();
     assertThat(session.isInvalid(), is(true));
   }
-  
+
+  @Test
+  public void shouldAwareSubscribersAdd() throws Exception {
+
+    Thread.sleep(1000L);
+    try {
+      center.category("new");
+      fail();
+    } catch (Exception e) {}
+    final ZooKeeperConnector connector =
+      new ZooKeeperConnector(connectString, sessionTimeout, listener);
+    connector.connect();
+    connector.create("/categories/new/subscribers/ad",
+                     Bytes.NULL,
+                     Ids.OPEN_ACL_UNSAFE,
+                     CreateMode.PERSISTENT);
+    connector.disconnect();
+    Thread.sleep(100L);
+    center.category("new");
+
+  }
+
   @Test
   public void shouldUpdateSubscribersOfCategory() throws Exception {
     final Category category = center.category("chat");

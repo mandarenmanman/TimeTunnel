@@ -44,7 +44,7 @@ public class RouterImpl implements Iface {
 	@Override
 	public String getBroker(String user, String pwd, String topic, String apply, Map<String, String> prop) throws RouterException, TException {
 		req = new Request(user, pwd, topic, apply, prop);
-		log.error("retrun from router: " + brokerUrl);
+		log.debug("return from router: " + brokerUrl);
 		return brokerUrl;
 	}
 

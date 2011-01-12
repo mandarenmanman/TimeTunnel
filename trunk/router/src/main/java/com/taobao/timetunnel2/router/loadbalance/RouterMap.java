@@ -4,12 +4,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.log4j.Logger;
+
 import com.taobao.timetunnel2.router.biz.BrokerUrl;
 import com.taobao.timetunnel2.router.common.ParamsKey;
+import com.taobao.timetunnel2.router.exception.LoadBalanceException;
+import com.taobao.timetunnel2.router.exception.ZKCliException;
 import com.taobao.timetunnel2.router.zkclient.ZooKeeperClientPool;
 import com.taobao.timetunnel2.router.zkclient.ZookeeperService;
 
 public class RouterMap {
+	private final static Logger log = Logger.getLogger(RouterMap.class);
 	private final static RouterMap instance = new RouterMap();
 	private ConcurrentHashMap<String, RouterCircle> routerMap = new ConcurrentHashMap<String, RouterCircle>();
 	private ConcurrentHashMap<String, String> clientMap = new ConcurrentHashMap<String, String>();
@@ -42,14 +47,22 @@ public class RouterMap {
 		clientMap.put(clientId, brokerUrl);
 	}
 	
-	public void setClientConstStatus(String clientId, String brokerUrl){
-		ZookeeperService client = zkpool.getZooKeeperClient();
-		client.setData(ParamsKey.ZNode.status+"/"+clientId, brokerUrl);
+	public void setClientConstStatus(String clientId, String brokerUrl) throws LoadBalanceException{		
+		try {
+			ZookeeperService client = zkpool.getZooKeeperClient();
+			client.setData(ParamsKey.ZNode.status+"/"+clientId, brokerUrl);
+		} catch (ZKCliException e) {
+			throw new LoadBalanceException(e);
+		}
 	}
 	
-	public void clearClientStatus(String clientId){
-		clientMap.remove(clientId);
-		client.delete(ParamsKey.ZNode.status+"/"+clientId, true);
+	public void clearClientStatus(String clientId) throws LoadBalanceException{
+		try {
+			clientMap.remove(clientId);
+			client.delete(ParamsKey.ZNode.status+"/"+clientId, true);
+		} catch (ZKCliException e) {
+			throw new LoadBalanceException(e);
+		}
 	}
 	
 	public void changeClientStatus(Collection<String> newBrokers){	
@@ -60,8 +73,12 @@ public class RouterMap {
 		return clientMap.get(clientId);
 	}
 	
-	public String getClientConstStatus(String clientId){
-		return client.getData(ParamsKey.ZNode.status+"/"+clientId);
+	public String getClientConstStatus(String clientId) throws LoadBalanceException{
+		try {
+			return client.getData(ParamsKey.ZNode.status+"/"+clientId);
+		} catch (ZKCliException e) {
+			throw new LoadBalanceException(e);
+		}
 	}
 	
 	public String getFollower(String topic, String broker){
@@ -85,8 +102,12 @@ public class RouterMap {
 	}
 	
 	public void clearAll(){
-		routerMap = null;
-		clientMap = null;
+		try {
+			if(client!=null)
+				client.close();
+		} catch (ZKCliException e) {
+			log.warn(e);
+		}
 	}
 
 }

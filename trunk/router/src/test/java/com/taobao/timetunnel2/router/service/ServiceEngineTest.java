@@ -9,13 +9,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.taobao.timetunnel2.router.common.ParamsKey;
-import com.taobao.timetunnel2.router.loadbalance.RouterContext;
+import com.taobao.timetunnel2.router.common.Util;
 
 public class ServiceEngineTest extends TestCase{
 	private  ServiceEngine srv;
 	@Before
 	public void setUp() throws Exception {
-		Properties prop = RouterContext.getContext().getAppParam();
+		Properties prop = Util.getConf();
 		String name = prop.getProperty(ParamsKey.Service.serverType, "BLOCK");
 		String classname = ParamsKey.Service.serverClass.BLOCK.getClassname();
 		try{

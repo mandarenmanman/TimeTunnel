@@ -3,14 +3,17 @@ package com.taobao.timetunnel.savefile.writer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 
 import com.taobao.timetunnel.savefile.app.Conf;
+import com.taobao.timetunnel.savefile.util.BytesUtil;
 import com.taobao.timetunnel.savefile.util.DateUtil;
 import com.taobao.timetunnel.savefile.util.FileUtil;
 import com.taobao.timetunnel.savefile.writer.FileWriter.OutputStreamStruct;
@@ -129,20 +132,43 @@ public class OutputStreamManager {
 		new File(outputStream.filePath).renameTo(new File(outputStream.filePath.substring(0, outputStream.filePath.length() - 4)));
 	}
 
-	public OutputStreamStruct getOutputStream(String tag) throws IOException {
+	private OutputStreamStruct getOutputStream(String tag) throws IOException {
 		OutputStreamStruct outputStream = null;
+		outputStream = outputStreamMap.get(tag);
+		if (outputStream != null && outputStream.bytesWritten > MAX_BYTES_PER_FILE) {
+			closeOutputStream(outputStream);
+			outputStream = null;
+		}
+		if (outputStream == null || outputStream.stream == null) {
+			outputStream = newOutputStream(tag);
+			outputStreamMap.put(tag, outputStream);
+		}
+		return outputStream;
+	}
+
+	public void writeWithLen(byte[] data, String tag) throws IOException {
 		lock.readLock().lock();
 		try {
-			outputStream = outputStreamMap.get(tag);
-			if (outputStream != null && outputStream.bytesWritten > MAX_BYTES_PER_FILE) {
-				closeOutputStream(outputStream);
-				outputStream = null;
-			}
-			if (outputStream == null || outputStream.stream == null) {
-				outputStream = newOutputStream(tag);
-				outputStreamMap.put(tag, outputStream);
-			}
-			return outputStream;
+			OutputStreamStruct outputStream = getOutputStream(tag);
+			ByteBuffer bf = ByteBuffer.allocate(4 + data.length);
+			bf.put(BytesUtil.intToBytes(data.length));
+			bf.put(data);
+			bf.flip();
+			IOUtils.write(bf.array(), outputStream.stream);
+			outputStream.bytesWritten += 4 + data.length;
+			outputStream.stream.flush();
+		} finally {
+			lock.readLock().unlock();
+		}
+	}
+
+	public void write(byte[] data, String tag) throws IOException {
+		lock.readLock().lock();
+		try {
+			OutputStreamStruct outputStream = getOutputStream(tag);
+			IOUtils.write(data, outputStream.stream);
+			outputStream.bytesWritten += data.length;
+			outputStream.stream.flush();
 		} finally {
 			lock.readLock().unlock();
 		}

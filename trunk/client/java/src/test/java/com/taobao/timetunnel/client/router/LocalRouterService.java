@@ -52,9 +52,12 @@ public class LocalRouterService {
 	}
 
 	public static void stop() {
-		server.stop();
-		SleepUtils.sleep(1000);
-		started.set(false);
+		if (started.get()){
+			server.stop();
+			SleepUtils.sleep(1000);
+			started.set(false);
+			log.debug("Local router server has been stoped.");
+		}
 	}
 
 	public static void main(String[] args) {

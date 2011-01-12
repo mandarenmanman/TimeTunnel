@@ -18,6 +18,7 @@ import org.junit.Test;
 
 import com.taobao.timetunnel2.router.common.ParamsKey;
 import com.taobao.timetunnel2.router.common.RouterConsts;
+import com.taobao.timetunnel2.router.exception.ZKCliException;
 
 public class ZooKeeperExectorTest extends TestCase{
 	private ZookeeperService zks;
@@ -39,8 +40,13 @@ public class ZooKeeperExectorTest extends TestCase{
 	public void testAsyncGetData() {
 		/*DCallback dcb = new DCallback();
 		CountDownLatch count = new CountDownLatch(1);*/
-		String data = zks.getData("/categories/acookie", null, null);
-		System.out.println("testGetData [/categories/acookie] result="+data);
+		try {
+			String data = zks.getData("/categories/acookie", null, null);
+			System.out.println("testGetData [/categories/acookie] result="+data);
+		} catch (ZKCliException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	@Test
@@ -54,14 +60,19 @@ public class ZooKeeperExectorTest extends TestCase{
 							null);
 				}
 			}
-		} catch (NoNodeException e) {
+		} catch (ZKCliException e) {
 			e.printStackTrace();
 		} 		
 	}
 
 	@Test
 	public void testAsyncDelete() {		
-		zks.delete("/clients/host1:8080-acookie/646d90b39f1d0774104863882f1f5c81", false, null, null);
+		try {
+			zks.delete("/clients/host1:8080-acookie/646d90b39f1d0774104863882f1f5c81", false, null, null);
+		} catch (ZKCliException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	class VCallback implements VoidCallback{
@@ -91,53 +102,70 @@ public class ZooKeeperExectorTest extends TestCase{
 	}
 	
 	@Test
-	public void testDelete() throws NoNodeException {
-		List<String> brokers = zks.getChildren(ParamsKey.ZNode.broker);
-		if(brokers!=null){	
-			for(String group: brokers){
-				List<String> nodes = zks.getChildren(ParamsKey.ZNode.broker+"/"+group);
-				if(nodes!=null){
-					for(String node: nodes){
-						zks.delete(ParamsKey.ZNode.broker+"/"+group+"/"+ node,true);	
+	public void testDelete() throws NoNodeException {		
+		try {
+			List<String> brokers = zks.getChildren(ParamsKey.ZNode.broker);
+			if(brokers!=null){	
+				for(String group: brokers){
+					List<String> nodes = zks.getChildren(ParamsKey.ZNode.broker+"/"+group);
+					if(nodes!=null){
+						for(String node: nodes){
+							zks.delete(ParamsKey.ZNode.broker+"/"+group+"/"+ node,true);	
+						}
 					}
+					zks.delete(ParamsKey.ZNode.broker+"/"+group,true);	
 				}
-				zks.delete(ParamsKey.ZNode.broker+"/"+group,true);	
 			}
-		}
+		} catch (ZKCliException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
 	}	
 	
 	@Test
 	public void testDeleteClients() throws NoNodeException {
-		List<String> sessions = zks.getChildren(ParamsKey.ZNode.session);
-		if(sessions!=null){	
-			for(String clientId: sessions){
-				System.out.println("clientId="+clientId);
-				if(!(clientId.equals("host1:8080-click") || clientId.equals("host1:8080-acookie"))){
-				List<String> nodes = zks.getChildren(ParamsKey.ZNode.session+"/"+clientId);
-				if(nodes!=null){
-					for(String node: nodes){
-						
-						zks.delete(ParamsKey.ZNode.broker+"/"+clientId+"/"+ node,true);	
+		try {
+			List<String> sessions = zks.getChildren(ParamsKey.ZNode.session);
+			if(sessions!=null){	
+				for(String clientId: sessions){
+					System.out.println("clientId="+clientId);
+					if(!(clientId.equals("host1:8080-click") || clientId.equals("host1:8080-acookie"))){
+					List<String> nodes = zks.getChildren(ParamsKey.ZNode.session+"/"+clientId);
+					if(nodes!=null){
+						for(String node: nodes){
+							
+							zks.delete(ParamsKey.ZNode.broker+"/"+clientId+"/"+ node,true);	
+						}
+					}
+					zks.delete(ParamsKey.ZNode.session+"/"+clientId,true);	
 					}
 				}
-				zks.delete(ParamsKey.ZNode.session+"/"+clientId,true);	
-				}
 			}
+		} catch (ZKCliException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		
 	}
 	
 	@Test
 	public void testSetData() {
-		zks.setData(ParamsKey.ZNode.user+"/tt", "{\"password\":\"3\"}");
-		Assert.assertEquals("{\"password\":\"3\"}", zks.getData(ParamsKey.ZNode.user+"/tt"));
-		zks.setData(ParamsKey.ZNode.user+"/tt", "{\"password\":\"2\"}");
-		Assert.assertEquals("{\"password\":\"2\"}", zks.getData(ParamsKey.ZNode.user+"/tt"));
-		zks.setData(ParamsKey.ZNode.broker+"/group1/b0000000000", "{\"external\":9999,\"internal\":9998,\"host\":\"10.232.130.1\"}");
-		Assert.assertEquals("{\"external\":9999,\"internal\":9998,\"host\":\"10.232.130.1\"}", zks.getData(ParamsKey.ZNode.broker+"/group1/b0000000000"));
-		zks.setData(ParamsKey.ZNode.broker+"/group1/b0000000001", "{\"external\":9999,\"internal\":9998,\"host\":\"10.232.130.2\"}");
-		Assert.assertEquals("{\"external\":9999,\"internal\":9998,\"host\":\"10.232.130.2\"}", zks.getData(ParamsKey.ZNode.broker+"/group1/b0000000001"));
-		zks.setData(ParamsKey.ZNode.broker+"/group1/b0000000002", "{\"external\":9999,\"internal\":9998,\"host\":\"10.232.130.3\"}");
-		Assert.assertEquals("{\"external\":9999,\"internal\":9998,\"host\":\"10.232.130.3\"}", zks.getData(ParamsKey.ZNode.broker+"/group1/b0000000002"));
+		try {
+			zks.setData(ParamsKey.ZNode.user+"/tt", "{\"password\":\"3\"}");
+			Assert.assertEquals("{\"password\":\"3\"}", zks.getData(ParamsKey.ZNode.user+"/tt"));
+			zks.setData(ParamsKey.ZNode.user+"/tt", "{\"password\":\"2\"}");
+			Assert.assertEquals("{\"password\":\"2\"}", zks.getData(ParamsKey.ZNode.user+"/tt"));
+			zks.setData(ParamsKey.ZNode.broker+"/group1/b0000000000", "{\"external\":9999,\"internal\":9998,\"host\":\"10.232.130.1\"}");
+			Assert.assertEquals("{\"external\":9999,\"internal\":9998,\"host\":\"10.232.130.1\"}", zks.getData(ParamsKey.ZNode.broker+"/group1/b0000000000"));
+			zks.setData(ParamsKey.ZNode.broker+"/group1/b0000000001", "{\"external\":9999,\"internal\":9998,\"host\":\"10.232.130.2\"}");
+			Assert.assertEquals("{\"external\":9999,\"internal\":9998,\"host\":\"10.232.130.2\"}", zks.getData(ParamsKey.ZNode.broker+"/group1/b0000000001"));
+			zks.setData(ParamsKey.ZNode.broker+"/group1/b0000000002", "{\"external\":9999,\"internal\":9998,\"host\":\"10.232.130.3\"}");
+			Assert.assertEquals("{\"external\":9999,\"internal\":9998,\"host\":\"10.232.130.3\"}", zks.getData(ParamsKey.ZNode.broker+"/group1/b0000000002"));
+
+		} catch (ZKCliException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	@Test
@@ -147,15 +175,20 @@ public class ZooKeeperExectorTest extends TestCase{
 			for(String topic: topics){
 				System.out.println(topic);
 			}			
-		} catch (NoNodeException e) {
+		} catch (ZKCliException e) {
 			e.printStackTrace();
 		}
 	}
 	
 	@Test
 	public void testGetData() {
-		String pwd = zks.getData(ParamsKey.ZNode.user+"/"+"tt");
-		Assert.assertEquals("{\"password\":\"2\"}", pwd);
+		try {
+			String pwd = zks.getData(ParamsKey.ZNode.user+"/"+"tt");
+			Assert.assertEquals("{\"password\":\"2\"}", pwd);
+		} catch (ZKCliException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
 	}
 
 	

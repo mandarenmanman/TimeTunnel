@@ -6,9 +6,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.log4j.Logger;
+
 import com.taobao.timetunnel2.router.common.RouterConsts;
+import com.taobao.timetunnel2.router.exception.ZKCliException;
 
 public class ZooKeeperClientPool {
+	private static final Logger log = Logger.getLogger(ZooKeeperClientPool.class);
 	private List<ZookeeperService> zkpool;
 	private int size=1;
 	private int counter=-1;
@@ -55,9 +59,13 @@ public class ZooKeeperClientPool {
 		for(int i=0; i<size; i++){
 			ZookeeperService zookeeper = zkpool.get(i);	
 			if(zookeeper!=null){
-				zookeeper.close();
+				try {
+					zookeeper.close();
+				} catch (ZKCliException e) {
+					log.warn(e);
+				}
 			}
 		}
 	}
-
+	
 }
